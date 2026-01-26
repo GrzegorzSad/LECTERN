@@ -1,0 +1,31 @@
+# Node backend
+/backend/node_modules/
+/backend/dist/
+/backend/.env
+/backend/.DS_Store
+/backend/npm-debug.log
+/backend/yarn-error.log
+
+# React frontend
+/frontend/node_modules/
+/frontend/build/
+/frontend/.env
+/frontend/.DS_Store
+/frontend/npm-debug.log
+/frontend/yarn-error.log
+
+# Python RAG microservice
+/rag-service/__pycache__/
+/rag-service/*.py[cod]
+/rag-service/venv/
+/rag-service/.env
+/rag-service/.DS_Store
+
+# Shared types
+/shared-types/.DS_Store
+
+# General
+.DS_Store
+*.log
+.idea/
+.vscode/
