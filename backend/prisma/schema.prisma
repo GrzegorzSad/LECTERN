@@ -1,0 +1,162 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Users
+model User {
+  id          Int        @id @default(autoincrement())
+  name        String
+  email       String?    @unique
+  accNeeds    String?
+  files       File[]
+  members     Member[]
+  linkedAccounts LinkedAccount[]
+  messages    Message[]
+  privateChats PrivateChat[]
+}
+
+// Groups
+model Group {
+  id             Int       @id @default(autoincrement())
+  name           String
+  img            String?
+  limitSources   Int?
+  canAddFiles    Boolean   @default(false)
+  canCreate      Boolean   @default(false)
+  limitAiModels  Int?
+  members        Member[]
+  files          File[]
+  channels       Channel[]
+  groupSources   GroupSource[]
+  groupAiModels  GroupAiModel[]
+  privateChats   PrivateChat[]
+}
+
+// Chunks
+model Chunk {
+  id        Int    @id @default(autoincrement())
+  vector    Json
+  fileName  String
+  info      String?
+  file      File   @relation(fields: [fileId], references: [id])
+  fileId    Int
+}
+
+// Files
+model File {
+  id        Int      @id @default(autoincrement())
+  name      String
+  info      String?
+  group     Group    @relation(fields: [groupId], references: [id])
+  groupId   Int
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  sourceId  Int?
+  isLinked  Boolean  @default(false)
+  chunks    Chunk[]
+}
+
+// Members
+model Member {
+  id      Int     @id @default(autoincrement())
+  group   Group   @relation(fields: [groupId], references: [id])
+  groupId Int
+  user    User    @relation(fields: [userId], references: [id])
+  userId  Int
+  memberRoles MemberRole[]
+}
+
+// Roles
+model Role {
+  id           Int     @id @default(autoincrement())
+  name         String
+  canAddMembers Boolean @default(false)
+  canAddFiles   Boolean @default(false)
+  memberRoles  MemberRole[]
+}
+
+// Pivot: MemberRole
+model MemberRole {
+  id       Int    @id @default(autoincrement())
+  member   Member @relation(fields: [memberId], references: [id])
+  memberId Int
+  role     Role   @relation(fields: [roleId], references: [id])
+  roleId   Int
+}
+
+// Sources
+model Source {
+  id        Int     @id @default(autoincrement())
+  name      String
+  groupSources GroupSource[]
+}
+
+// Pivot: GroupSource
+model GroupSource {
+  id       Int    @id @default(autoincrement())
+  group    Group  @relation(fields: [groupId], references: [id])
+  groupId  Int
+  source   Source @relation(fields: [sourceId], references: [id])
+  sourceId Int
+}
+
+// Channels
+model Channel {
+  id       Int      @id @default(autoincrement())
+  name     String
+  group    Group    @relation(fields: [groupId], references: [id])
+  groupId  Int
+  messages Message[]
+}
+
+// Messages
+model Message {
+  id             Int       @id @default(autoincrement())
+  channel        Channel   @relation(fields: [channelId], references: [id])
+  channelId      Int
+  user           User      @relation(fields: [userId], references: [id])
+  userId         Int
+  createdAt      DateTime  @default(now())
+  content        String
+  isPinned       Boolean   @default(false)
+  parentMessage  Message?  @relation("MessageReplies", fields: [parentMessageId], references: [id])
+  parentMessageId Int?
+  replies        Message[] @relation("MessageReplies")
+}
+
+// Private Channels / Chats
+model PrivateChat {
+  id        Int    @id @default(autoincrement())
+  user      User   @relation(fields: [userId], references: [id])
+  userId    Int
+  group     Group  @relation(fields: [groupId], references: [id])
+  groupId   Int
+}
+
+// Linked Accounts
+model LinkedAccount {
+  id        Int    @id @default(autoincrement())
+  user      User   @relation(fields: [userId], references: [id])
+  userId    Int
+  info      String
+}
+
+// AI Models
+model AiModel {
+  id          Int    @id @default(autoincrement())
+  name        String
+  groupAiModels GroupAiModel[]
+}
+
+// Pivot: Group-AI Model
+model GroupAiModel {
+  id        Int      @id @default(autoincrement())
+  groupId   Int
+  aiModelId Int
+  group     Group    @relation(fields: [groupId], references: [id])
+  aiModel   AiModel  @relation(fields: [aiModelId], references: [id])
+}
