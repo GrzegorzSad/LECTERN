@@ -17,7 +17,7 @@ async function bootstrap() {
   app.enableCors();
 
   const config = new DocumentBuilder()
-    .setTitle('My API')
+    .setTitle('LECTERN')
     .setDescription('Backend API')
     .setVersion('1.0')
     .addBearerAuth()
