@@ -1,9 +1,22 @@
 -- CreateTable
+CREATE TABLE "Session" (
+    "id" TEXT NOT NULL,
+    "sid" TEXT NOT NULL,
+    "data" TEXT NOT NULL,
+    "expires" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
-    "email" TEXT,
-    "accNeeds" TEXT,
+    "email" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "img" TEXT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -13,10 +26,6 @@ CREATE TABLE "Group" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "img" TEXT,
-    "limitSources" INTEGER,
-    "canAddFiles" BOOLEAN NOT NULL DEFAULT false,
-    "canCreate" BOOLEAN NOT NULL DEFAULT false,
-    "limitAiModels" INTEGER,
 
     CONSTRAINT "Group_pkey" PRIMARY KEY ("id")
 );
@@ -26,7 +35,8 @@ CREATE TABLE "Chunk" (
     "id" SERIAL NOT NULL,
     "vector" JSONB NOT NULL,
     "fileName" TEXT NOT NULL,
-    "info" TEXT,
+    "relations" TEXT,
+    "entities" TEXT,
     "fileId" INTEGER NOT NULL,
 
     CONSTRAINT "Chunk_pkey" PRIMARY KEY ("id")
@@ -50,27 +60,9 @@ CREATE TABLE "Member" (
     "id" SERIAL NOT NULL,
     "groupId" INTEGER NOT NULL,
     "userId" INTEGER NOT NULL,
+    "role" TEXT NOT NULL,
 
     CONSTRAINT "Member_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Role" (
-    "id" SERIAL NOT NULL,
-    "name" TEXT NOT NULL,
-    "canAddMembers" BOOLEAN NOT NULL DEFAULT false,
-    "canAddFiles" BOOLEAN NOT NULL DEFAULT false,
-
-    CONSTRAINT "Role_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "MemberRole" (
-    "id" SERIAL NOT NULL,
-    "memberId" INTEGER NOT NULL,
-    "roleId" INTEGER NOT NULL,
-
-    CONSTRAINT "MemberRole_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -148,6 +140,9 @@ CREATE TABLE "GroupAiModel" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Session_sid_key" ON "Session"("sid");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- AddForeignKey
@@ -164,12 +159,6 @@ ALTER TABLE "Member" ADD CONSTRAINT "Member_groupId_fkey" FOREIGN KEY ("groupId"
 
 -- AddForeignKey
 ALTER TABLE "Member" ADD CONSTRAINT "Member_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "MemberRole" ADD CONSTRAINT "MemberRole_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "Member"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "MemberRole" ADD CONSTRAINT "MemberRole_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "GroupSource" ADD CONSTRAINT "GroupSource_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "Group"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
