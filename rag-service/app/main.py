@@ -4,10 +4,19 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.db import get_db
 from .middleware.service_auth import ServiceAuthMiddleware
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 app = FastAPI(title="RAG Microservice")
 
 app.add_middleware(ServiceAuthMiddleware)
+
+def chunk_text(text: str, chunk_size: int = 500, chunk_overlap: int = 50):
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap
+    )
+    chunks = splitter.split_text(text)
+    return chunks
 
 class RetrieveRequest(BaseModel):
     query: str
@@ -15,7 +24,18 @@ class RetrieveRequest(BaseModel):
 @app.post("/process-file")
 async def process_file(file: UploadFile = File(None), link: str = Form(None)):
     if file:
-        return {"status": "received file", "filename": file.filename}
+        content = await file.read()
+        text = content.decode("utf-8")
+        
+        chunks = chunk_text(text)
+
+        return {
+            "status": "received file",
+            "filename": file.filename,
+            "chunks_count": len(chunks),
+            "chunks_preview": chunks[:3]
+        }
+
     elif link:
         return {"status": "received link", "link": link}
     else:

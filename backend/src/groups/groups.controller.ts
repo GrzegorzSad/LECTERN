@@ -13,6 +13,7 @@ import {
 import { GroupsService } from './groups.service';
 import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
 import { CreateGroupDto } from './dto/create-group.dto';
+import type { Request } from 'express';
 
 @Controller('Groups')
 export class GroupsController {
@@ -20,8 +21,8 @@ export class GroupsController {
 
   @UseGuards(SessionAuthGuard)
   @Post()
-  create(@Body() dto: CreateGroupDto, @Req() req: any) {
-    const userId = req.session.user.id;
+  create(@Body() dto: CreateGroupDto, @Req() req: Request) {
+    const userId = req.session.user!.id;
     return this.groupsService.createGroup(dto.name, userId, dto.img);
   }
 
