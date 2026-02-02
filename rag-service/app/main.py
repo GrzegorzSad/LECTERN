@@ -3,8 +3,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.db import get_db
+from .middleware.service_auth import ServiceAuthMiddleware
 
 app = FastAPI(title="RAG Microservice")
+
+app.add_middleware(ServiceAuthMiddleware)
 
 class RetrieveRequest(BaseModel):
     query: str
