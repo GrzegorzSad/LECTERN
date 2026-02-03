@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsInt, IsOptional} from 'class-validator'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsInt, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UploadDocumentDto {
@@ -9,7 +9,7 @@ export class UploadDocumentDto {
   })
   @IsInt()
   @Type(() => Number)
-  groupId: number
+  groupId: number;
 
   @ApiPropertyOptional({
     description: 'Optional source ID associated with the file',
@@ -18,5 +18,13 @@ export class UploadDocumentDto {
   @IsOptional()
   @IsInt()
   @Type(() => Number)
-  sourceId?: number
+  sourceId?: number;
+
+  @ApiPropertyOptional({
+    description: 'Optional link to external storage',
+    example: 2,
+  })
+  @IsOptional()
+  @IsString()
+  link?: string;
 }

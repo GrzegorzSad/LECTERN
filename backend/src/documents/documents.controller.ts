@@ -41,7 +41,12 @@ export class DocumentsController {
     @Body() dto: UploadDocumentDto,
     @Req() req: Request,
   ) {
-    if (!file) throw new Error('No file uploaded');
+    if (!file && !dto.link) {
+      throw new Error('file or link required');
+    }
+    if (file && dto.link) {
+      throw new Error('provide file OR link, not both');
+    }
     const userId = req.session.user!.id;
     return this.documentsService.uploadDocument(
       file,
