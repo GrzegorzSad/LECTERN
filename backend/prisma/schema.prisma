@@ -57,13 +57,23 @@ model Chunk {
 model File {
   id        Int      @id @default(autoincrement())
   name      String
+  path      String
+  mimeType  String
+  size      Int
   info      String?
+
   group     Group    @relation(fields: [groupId], references: [id])
   groupId   Int
+
   user      User     @relation(fields: [userId], references: [id])
   userId    Int
+
   sourceId  Int?
   isLinked  Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   chunks    Chunk[]
 }
 

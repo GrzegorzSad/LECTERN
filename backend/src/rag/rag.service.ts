@@ -9,12 +9,15 @@ export class RagService {
     userId: number,
     groupId: number,
     sourceId?: number,
+    dbFileId?: number,
   ) {
     const form = new FormData();
     form.append('file', file.buffer, file.originalname);
     form.append('user_id', userId.toString());
     form.append('group_id', groupId.toString());
-
+    if (dbFileId) {
+      form.append('file_id', dbFileId.toString());
+    }
     if (sourceId) {
       form.append('source_id', sourceId.toString());
     }
