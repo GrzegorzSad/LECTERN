@@ -32,6 +32,7 @@ export class DocumentsController {
         file: { type: 'string', format: 'binary' },
         groupId: { type: 'number' },
         sourceId: { type: 'number' },
+        link: { type: 'string' },
       },
       required: ['file', 'groupId'],
     },

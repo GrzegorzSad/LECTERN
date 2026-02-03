@@ -5,10 +5,13 @@ from sqlalchemy import text
 from app.db import get_db
 from .middleware.service_auth import ServiceAuthMiddleware
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
 
 app = FastAPI(title="RAG Microservice")
 
 app.add_middleware(ServiceAuthMiddleware)
+
+embeddings_model = OpenAIEmbeddings(model="text-embedding-3-small")
 
 def chunk_text(text: str, chunk_size: int = 500, chunk_overlap: int = 50):
     splitter = RecursiveCharacterTextSplitter(
@@ -17,6 +20,13 @@ def chunk_text(text: str, chunk_size: int = 500, chunk_overlap: int = 50):
     )
     chunks = splitter.split_text(text)
     return chunks
+
+def embed_chunks(chunks: list[str]) -> list[list[float]]:
+    """
+    Generate embeddings for a list of text chunks.
+    Returns a list of vectors (floats).
+    """
+    return embeddings_model.embed_documents(chunks)
 
 class RetrieveRequest(BaseModel):
     query: str
@@ -28,12 +38,14 @@ async def process_file(file: UploadFile = File(None), link: str = Form(None)):
         text = content.decode("utf-8")
         
         chunks = chunk_text(text)
+        vectors = embed_chunks(chunks)
 
         return {
             "status": "received file",
             "filename": file.filename,
             "chunks_count": len(chunks),
-            "chunks_preview": chunks[:3]
+            "chunks_preview": chunks[:3],
+            "vectors_preview": vectors[:3]  # optional, just for testing
         }
 
     elif link:
