@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { RagService } from '../rag/rag.service';
 import { PrismaService } from '../prisma/prisma.service';
 import * as fs from 'fs';
@@ -19,6 +19,28 @@ export class DocumentsService {
   }
 
   async uploadDocument(
+    file: Express.Multer.File | undefined,
+    userId: number,
+    groupId: number,
+    sourceId?: number,
+    link?: string,
+  ) {
+    if (file && link) {
+      throw new BadRequestException('Provide file OR link, not both');
+    }
+
+    if (!file && !link) {
+      throw new BadRequestException('file or link required');
+    }
+
+    if (file) {
+      return this.uploadFile(file, userId, groupId, sourceId);
+    }
+
+    return this.linkFile(link!, userId, groupId, sourceId);
+  }
+
+  private async uploadFile(
     file: Express.Multer.File,
     userId: number,
     groupId: number,
@@ -39,6 +61,7 @@ export class DocumentsService {
         userId,
         groupId,
         sourceId,
+        isLinked: false,
       },
     });
 
@@ -53,6 +76,29 @@ export class DocumentsService {
     return {
       file: dbFile,
       rag: ragResult,
+    };
+  }
+
+  private async linkFile(
+    link: string,
+    userId: number,
+    groupId: number,
+    sourceId?: number,
+  ) {
+    // const dbFile = await this.prisma.file.create({
+    //   data: {
+    //     name: link,
+    //     info: 'linked source',
+    //     isLinked: true,
+    //     userId,
+    //     groupId,
+    //     sourceId,
+    //   },
+    // });
+
+    return {
+    //   file: dbFile,
+      rag: 'this endpoint does not function yet',
     };
   }
 }
