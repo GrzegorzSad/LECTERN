@@ -138,10 +138,18 @@ model PrivateChat {
 
 // Linked Accounts
 model LinkedAccount {
-  id        Int    @id @default(autoincrement())
-  user      User   @relation(fields: [userId], references: [id])
-  userId    Int
-  info      String
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  provider     String
+  providerUser String
+  email        String?
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerUser])
 }
 
 // AI Models
