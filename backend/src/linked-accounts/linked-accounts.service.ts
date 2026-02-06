@@ -18,7 +18,7 @@ export class LinkedAccountsService {
     });
   }
 
-   getMicrosoftAuthUrl() {
+  getMicrosoftAuthUrl() {
     const params = new URLSearchParams({
       client_id: process.env.MS_CLIENT_ID!,
       response_type: 'code',
@@ -45,10 +45,9 @@ export class LinkedAccountsService {
 
     const { access_token, refresh_token, expires_in } = tokenRes.data;
 
-    const meRes = await axios.get(
-      'https://graph.microsoft.com/v1.0/me',
-      { headers: { Authorization: `Bearer ${access_token}` } },
-    );
+    const meRes = await axios.get('https://graph.microsoft.com/v1.0/me', {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
 
     const providerUser = meRes.data.id;
     const email = meRes.data.mail ?? meRes.data.userPrincipalName;
@@ -75,6 +74,40 @@ export class LinkedAccountsService {
         expiresAt: new Date(Date.now() + expires_in * 1000),
       },
     });
+  }
+
+  async refreshMicrosoftToken(userId: number) {
+    const account = await this.prisma.linkedAccount.findFirst({
+      where: { userId, provider: 'microsoft' },
+    });
+
+    if (!account) throw new Error('No Microsoft account linked');
+    if (!account.refreshToken) throw new Error('No refresh token available');
+
+    const tokenRes = await axios.post(
+      'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+      new URLSearchParams({
+        client_id: process.env.MS_CLIENT_ID!,
+        client_secret: process.env.MS_CLIENT_SECRET!,
+        refresh_token: account.refreshToken,
+        grant_type: 'refresh_token',
+        redirect_uri: process.env.MS_REDIRECT_URI!,
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
+
+    const { access_token, refresh_token, expires_in } = tokenRes.data;
+
+    await this.prisma.linkedAccount.update({
+      where: { id: account.id },
+      data: {
+        accessToken: access_token,
+        refreshToken: refresh_token || account.refreshToken,
+        expiresAt: new Date(Date.now() + expires_in * 1000),
+      },
+    });
+
+    return access_token;
   }
 
   async unlink(id: number, userId: number) {

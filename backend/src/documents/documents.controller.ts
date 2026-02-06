@@ -12,6 +12,7 @@ import { DocumentsService } from './documents.service';
 import { ApiConsumes, ApiBody, ApiTags } from '@nestjs/swagger';
 import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
 import { UploadDocumentDto } from './dto/upload-documents.dto';
+import { LinkDocumentDto } from './dto/link-documents.dto';
 import type { Request } from 'express';
 
 @ApiTags('documents')
@@ -42,17 +43,41 @@ export class DocumentsController {
     @Body() dto: UploadDocumentDto,
     @Req() req: Request,
   ) {
-    if (!file && !dto.link) {
-      throw new Error('file or link required');
-    }
-    if (file && dto.link) {
-      throw new Error('provide file OR link, not both');
+    if (!file) {
+      throw new Error('file required');
     }
     const userId = req.session.user!.id;
     return this.documentsService.uploadDocument(
       file,
       userId,
       dto.groupId,
+      dto.sourceId,
+    );
+  }
+
+  @UseGuards(SessionAuthGuard)
+  @Post('link')
+  @ApiBody({
+    description: 'link a file hosted online',
+    schema: {
+      type: 'object',
+      properties: {
+        groupId: { type: 'number' },
+        sourceId: { type: 'number' },
+        link: { type: 'string' },
+      },
+      required: ['link', 'groupId'],
+    },
+  })
+  link(
+    @Body() dto: LinkDocumentDto,
+    @Req() req: Request,
+  ) {
+    const userId = req.session.user!.id;
+    return this.documentsService.linkDocument(
+      userId,
+      dto.groupId,
+      dto.link,
       dto.sourceId,
     );
   }
