@@ -46,6 +46,7 @@ export class DocumentsService {
     userId: number,
     groupId: number,
     sourceId?: number,
+    isLinked?: boolean,
   ) {
     const ext = path.extname(file.originalname);
     const filename = `${randomUUID()}${ext}`;
@@ -62,7 +63,7 @@ export class DocumentsService {
         userId,
         groupId,
         sourceId,
-        isLinked: false,
+        isLinked: isLinked,
       },
     });
 
@@ -120,7 +121,7 @@ export class DocumentsService {
         stream: null as any,
       };
 
-      return this.uploadFile(fileLikeMulter, userId, groupId, sourceId);
+      return this.uploadFile(fileLikeMulter, userId, groupId, sourceId, true);
     } catch (err) {
       console.error(
         'OneDrive download error:',
@@ -128,29 +129,5 @@ export class DocumentsService {
       );
       throw new BadRequestException('Failed to download file from OneDrive');
     }
-
-    // Fallback for non-OneDrive links: treat link as normal file URL
-    // try {
-    //   const response = await axios.get(link, { responseType: 'arraybuffer' });
-    //   const fileBuffer = Buffer.from(response.data);
-
-    //   const fileLikeMulter: Express.Multer.File = {
-    //     buffer: fileBuffer,
-    //     originalname: link.split('/').pop() || `file-${Date.now()}`,
-    //     mimetype: response.headers['content-type'] || 'application/octet-stream',
-    //     size: fileBuffer.length,
-    //     fieldname: 'file',
-    //     encoding: '7bit',
-    //     destination: '',
-    //     filename: '',
-    //     path: '',
-    //     stream: null as any,
-    //   };
-
-    //   return this.uploadFile(fileLikeMulter, userId, groupId, sourceId);
-    // } catch (err) {
-    //   console.error('Link download error:', err.response?.data || err.message);
-    //   throw new BadRequestException('Failed to download file from link');
-    // }
   }
 }
