@@ -10,10 +10,12 @@ import { GroupsModule } from './groups/groups.module';
 import { LinkedAccountsController } from './linked-accounts/linked-accounts.controller';
 import { LinkedAccountsService } from './linked-accounts/linked-accounts.service';
 import { LinkedAccountsModule } from './linked-accounts/linked-accounts.module';
+import { OneDriveController } from './onedrive/onedrive.controller';
+import { OneDriveModule } from './onedrive/onedrive.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule],
-  controllers: [AppController, LinkedAccountsController],
+  imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule, OneDriveModule],
+  controllers: [AppController, LinkedAccountsController, OneDriveController],
   providers: [AppService, RagService, LinkedAccountsService],
 })
 export class AppModule {}

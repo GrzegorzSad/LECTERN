@@ -76,6 +76,52 @@ export class LinkedAccountsService {
     });
   }
 
+  async getValidMicrosoftToken(userId: number): Promise<string> {
+    const account = await this.prisma.linkedAccount.findFirst({
+      where: { userId, provider: 'microsoft' },
+    });
+
+    if (!account) {
+      throw new Error('No Microsoft account linked');
+    }
+
+    const expiresSoon =
+      !account.expiresAt || account.expiresAt.getTime() <= Date.now() + 60_000;
+
+    if (!expiresSoon) {
+      return account.accessToken;
+    }
+
+    if (!account.refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    const tokenRes = await axios.post(
+      'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+      new URLSearchParams({
+        client_id: process.env.MS_CLIENT_ID!,
+        client_secret: process.env.MS_CLIENT_SECRET!,
+        refresh_token: account.refreshToken,
+        grant_type: 'refresh_token',
+        scope: 'User.Read offline_access Files.Read',
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
+
+    const { access_token, refresh_token, expires_in } = tokenRes.data;
+
+    await this.prisma.linkedAccount.update({
+      where: { id: account.id },
+      data: {
+        accessToken: access_token,
+        refreshToken: refresh_token ?? account.refreshToken,
+        expiresAt: new Date(Date.now() + expires_in * 1000),
+      },
+    });
+
+    return access_token;
+  }
+
   async refreshMicrosoftToken(userId: number) {
     const account = await this.prisma.linkedAccount.findFirst({
       where: { userId, provider: 'microsoft' },
