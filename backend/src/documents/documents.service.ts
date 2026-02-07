@@ -47,6 +47,7 @@ export class DocumentsService {
     groupId: number,
     sourceId?: number,
     isLinked?: boolean,
+    remoteId?: string
   ) {
     const ext = path.extname(file.originalname);
     const filename = `${randomUUID()}${ext}`;
@@ -62,6 +63,7 @@ export class DocumentsService {
         size: file.size,
         userId,
         groupId,
+        remoteId,
         sourceId,
         isLinked: isLinked,
       },
@@ -121,7 +123,7 @@ export class DocumentsService {
         stream: null as any,
       };
 
-      return this.uploadFile(fileLikeMulter, userId, groupId, sourceId, true);
+      return this.uploadFile(fileLikeMulter, userId, groupId, sourceId, true, itemId);
     } catch (err) {
       console.error(
         'OneDrive download error:',
