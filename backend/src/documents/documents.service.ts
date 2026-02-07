@@ -1,12 +1,12 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { RagService } from '../rag/rag.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OneDriveService } from 'src/onedrive/onedrive.service';
 import { LinkedAccountsService } from 'src/linked-accounts/linked-accounts.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import axios from 'axios';
-
 
 @Injectable()
 export class DocumentsService {
@@ -15,7 +15,8 @@ export class DocumentsService {
   constructor(
     private readonly ragService: RagService,
     private readonly prisma: PrismaService,
-    private readonly linkedAccountsService: LinkedAccountsService
+    private readonly linkedAccountsService: LinkedAccountsService,
+    private readonly oneDriveService: OneDriveService,
   ) {
     if (!fs.existsSync(this.uploadDir)) {
       fs.mkdirSync(this.uploadDir, { recursive: true });
@@ -82,34 +83,34 @@ export class DocumentsService {
     groupId: number,
     sourceId?: number,
   ) {
-    //HERE TODO if sourceid-onedrive
-    const linkedAccount = await this.prisma.linkedAccount.findFirst({
-      where: { userId, provider: 'microsoft' },
-    });
-    if (!linkedAccount)
-      throw new BadRequestException('No OneDrive/microsoft account linked');
-
-    let accessToken = linkedAccount.accessToken;
-    if (linkedAccount.expiresAt <= new Date()) {
-      accessToken =
-        await this.linkedAccountsService.refreshMicrosoftToken(userId);
+    // Extract OneDrive itemId if link is a full Graph URL
+    let itemId = link;
+    try {
+      const url = new URL(link);
+      if (url.hostname === 'graph.microsoft.com') {
+        // Extract the itemId from `/me/drive/items/{itemId}/content`
+        const match = url.pathname.match(
+          /\/me\/drive\/items\/([^\/]+)\/content/,
+        );
+        if (!match) throw new Error('Invalid OneDrive link format');
+        itemId = match[1];
+      }
+    } catch {
+      // If it's not a valid URL, assume it's already an itemId
+      itemId = link;
     }
 
+    // For OneDrive (assuming this will be extended with sourceId logic later)
     try {
-      const response = await axios.get(link, {
-        responseType: 'arraybuffer',
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      const fileBuffer = Buffer.from(response.data);
-      const filename = link.split('/').pop() || `file-${Date.now()}`;
-      const mimeType =
-        response.headers['content-type'] || 'application/octet-stream';
+      const fileBuffer = await this.oneDriveService.downloadFile(
+        userId,
+        itemId,
+      );
 
       const fileLikeMulter: Express.Multer.File = {
         buffer: fileBuffer,
-        originalname: filename,
-        mimetype: mimeType,
+        originalname: `onedrive-${itemId}`,
+        mimetype: 'application/octet-stream',
         size: fileBuffer.length,
         fieldname: 'file',
         encoding: '7bit',
@@ -127,6 +128,29 @@ export class DocumentsService {
       );
       throw new BadRequestException('Failed to download file from OneDrive');
     }
-  }
 
+    // Fallback for non-OneDrive links: treat link as normal file URL
+    // try {
+    //   const response = await axios.get(link, { responseType: 'arraybuffer' });
+    //   const fileBuffer = Buffer.from(response.data);
+
+    //   const fileLikeMulter: Express.Multer.File = {
+    //     buffer: fileBuffer,
+    //     originalname: link.split('/').pop() || `file-${Date.now()}`,
+    //     mimetype: response.headers['content-type'] || 'application/octet-stream',
+    //     size: fileBuffer.length,
+    //     fieldname: 'file',
+    //     encoding: '7bit',
+    //     destination: '',
+    //     filename: '',
+    //     path: '',
+    //     stream: null as any,
+    //   };
+
+    //   return this.uploadFile(fileLikeMulter, userId, groupId, sourceId);
+    // } catch (err) {
+    //   console.error('Link download error:', err.response?.data || err.message);
+    //   throw new BadRequestException('Failed to download file from link');
+    // }
+  }
 }
