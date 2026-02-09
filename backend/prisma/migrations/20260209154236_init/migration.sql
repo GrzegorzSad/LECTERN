@@ -33,7 +33,6 @@ CREATE TABLE "Group" (
 -- CreateTable
 CREATE TABLE "Chunk" (
     "id" SERIAL NOT NULL,
-    "vector" JSONB NOT NULL,
     "fileName" TEXT NOT NULL,
     "relations" TEXT,
     "entities" TEXT,
@@ -46,11 +45,17 @@ CREATE TABLE "Chunk" (
 CREATE TABLE "File" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
+    "path" TEXT NOT NULL,
+    "mimeType" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
     "info" TEXT,
     "groupId" INTEGER NOT NULL,
     "userId" INTEGER NOT NULL,
+    "remoteId" TEXT,
     "sourceId" INTEGER,
     "isLinked" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "File_pkey" PRIMARY KEY ("id")
 );
@@ -117,7 +122,12 @@ CREATE TABLE "PrivateChat" (
 CREATE TABLE "LinkedAccount" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
-    "info" TEXT NOT NULL,
+    "provider" TEXT NOT NULL,
+    "providerUser" TEXT NOT NULL,
+    "email" TEXT,
+    "accessToken" TEXT NOT NULL,
+    "refreshToken" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "LinkedAccount_pkey" PRIMARY KEY ("id")
 );
@@ -144,6 +154,9 @@ CREATE UNIQUE INDEX "Session_sid_key" ON "Session"("sid");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "LinkedAccount_provider_providerUser_key" ON "LinkedAccount"("provider", "providerUser");
 
 -- AddForeignKey
 ALTER TABLE "Chunk" ADD CONSTRAINT "Chunk_fileId_fkey" FOREIGN KEY ("fileId") REFERENCES "File"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
