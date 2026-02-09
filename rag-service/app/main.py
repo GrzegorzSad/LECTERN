@@ -43,9 +43,8 @@ async def process_file(file: UploadFile = File(None), link: str = Form(None)):
         return {
             "status": "received file",
             "filename": file.filename,
-            "chunks_count": len(chunks),
-            "chunks_preview": chunks[:3],
-            "vectors_preview": vectors[:3]  # optional, just for testing
+            "chunks": chunks,
+            "vectors": vectors,
         }
 
     elif link:

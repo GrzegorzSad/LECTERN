@@ -3,6 +3,7 @@ import { RagService } from '../rag/rag.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OneDriveService } from 'src/onedrive/onedrive.service';
 import { LinkedAccountsService } from 'src/linked-accounts/linked-accounts.service';
+import { CreateChunksDto } from './dto/create-chunks.dto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -47,7 +48,7 @@ export class DocumentsService {
     groupId: number,
     sourceId?: number,
     isLinked?: boolean,
-    remoteId?: string
+    remoteId?: string,
   ) {
     const ext = path.extname(file.originalname);
     const filename = `${randomUUID()}${ext}`;
@@ -77,6 +78,19 @@ export class DocumentsService {
       dbFile.id,
     );
 
+    // Automatically store chunks if returned
+    if (ragResult.chunks && ragResult.vectors) {
+      const chunksData = ragResult.chunks.map((text: string, i: number) => ({
+        fileId: dbFile.id,
+        fileName: file.originalname,
+        vector: ragResult.vectors[i],
+        relations: null,
+        entities: null,
+      }));
+
+      await this.prisma.chunk.createMany({ data: chunksData });
+    }
+
     return { file: dbFile, rag: ragResult };
   }
 
@@ -86,12 +100,10 @@ export class DocumentsService {
     groupId: number,
     sourceId?: number,
   ) {
-    // Extract OneDrive itemId if link is a full Graph URL
     let itemId = link;
     try {
       const url = new URL(link);
       if (url.hostname === 'graph.microsoft.com') {
-        // Extract the itemId from `/me/drive/items/{itemId}/content`
         const match = url.pathname.match(
           /\/me\/drive\/items\/([^\/]+)\/content/,
         );
@@ -99,11 +111,9 @@ export class DocumentsService {
         itemId = match[1];
       }
     } catch {
-      // If it's not a valid URL, assume it's already an itemId
       itemId = link;
     }
 
-    // For OneDrive (assuming this will be extended with sourceId logic later)
     try {
       const fileBuffer = await this.oneDriveService.downloadFile(
         userId,
@@ -123,7 +133,14 @@ export class DocumentsService {
         stream: null as any,
       };
 
-      return this.uploadFile(fileLikeMulter, userId, groupId, sourceId, true, itemId);
+      return this.uploadFile(
+        fileLikeMulter,
+        userId,
+        groupId,
+        sourceId,
+        true,
+        itemId,
+      );
     } catch (err) {
       console.error(
         'OneDrive download error:',
@@ -131,5 +148,20 @@ export class DocumentsService {
       );
       throw new BadRequestException('Failed to download file from OneDrive');
     }
+  }
+
+  // Manual endpoint for storing chunks (optional)
+  async storeChunks(dto: CreateChunksDto) {
+    const { fileId, vectors, fileNames, relations, entities } = dto;
+
+    const chunkRecords = vectors.map((vec, i) => ({
+      fileId,
+      vector: vec,
+      fileName: fileNames?.[i] || `chunk-${i}`,
+      relations: relations?.[i] || null,
+      entities: entities?.[i] || null,
+    }));
+
+    return this.prisma.chunk.createMany({ data: chunkRecords });
   }
 }

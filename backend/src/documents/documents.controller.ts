@@ -13,6 +13,7 @@ import { ApiConsumes, ApiBody, ApiTags } from '@nestjs/swagger';
 import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
 import { UploadDocumentDto } from './dto/upload-documents.dto';
 import { LinkDocumentDto } from './dto/link-documents.dto';
+import { CreateChunksDto } from './dto/create-chunks.dto';
 import type { Request } from 'express';
 
 @ApiTags('documents')
@@ -69,10 +70,7 @@ export class DocumentsController {
       required: ['link', 'groupId'],
     },
   })
-  link(
-    @Body() dto: LinkDocumentDto,
-    @Req() req: Request,
-  ) {
+  link(@Body() dto: LinkDocumentDto, @Req() req: Request) {
     const userId = req.session.user!.id;
     return this.documentsService.linkDocument(
       userId,
@@ -80,5 +78,10 @@ export class DocumentsController {
       dto.link,
       dto.sourceId,
     );
+  }
+
+  @Post('chunks')
+  storeChunks(@Body() dto: CreateChunksDto) {
+    return this.documentsService.storeChunks(dto);
   }
 }
