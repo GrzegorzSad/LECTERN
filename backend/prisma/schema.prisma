@@ -46,6 +46,7 @@ model Group {
 model Chunk {
   id        Int    @id @default(autoincrement())
   fileName  String
+  text      String
   vector    Json
   relations String?
   entities  String?

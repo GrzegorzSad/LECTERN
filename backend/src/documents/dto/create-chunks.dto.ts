@@ -9,6 +9,10 @@ export class CreateChunksDto {
 
   @IsArray()
   @IsOptional()
+  chunks?: string[];
+
+  @IsArray()
+  @IsOptional()
   fileNames?: string[];
 
   @IsArray()

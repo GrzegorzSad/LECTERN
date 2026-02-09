@@ -83,6 +83,7 @@ export class DocumentsService {
       const chunksData = ragResult.chunks.map((text: string, i: number) => ({
         fileId: dbFile.id,
         fileName: file.originalname,
+        text: ragResult.chunks[i],
         vector: ragResult.vectors[i],
         relations: null,
         entities: null,
@@ -150,13 +151,13 @@ export class DocumentsService {
     }
   }
 
-  // Manual endpoint for storing chunks (optional)
   async storeChunks(dto: CreateChunksDto) {
-    const { fileId, vectors, fileNames, relations, entities } = dto;
+    const { fileId, vectors, chunks, fileNames, relations, entities } = dto;
 
     const chunkRecords = vectors.map((vec, i) => ({
       fileId,
       vector: vec,
+      text: chunks?.[i] || '',
       fileName: fileNames?.[i] || `chunk-${i}`,
       relations: relations?.[i] || null,
       entities: entities?.[i] || null,

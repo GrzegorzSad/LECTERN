@@ -34,6 +34,7 @@ CREATE TABLE "Group" (
 CREATE TABLE "Chunk" (
     "id" SERIAL NOT NULL,
     "fileName" TEXT NOT NULL,
+    "text" TEXT,
     "relations" TEXT,
     "entities" TEXT,
     "fileId" INTEGER NOT NULL,

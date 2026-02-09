@@ -12,10 +12,11 @@ import { LinkedAccountsService } from './linked-accounts/linked-accounts.service
 import { LinkedAccountsModule } from './linked-accounts/linked-accounts.module';
 import { OneDriveController } from './onedrive/onedrive.controller';
 import { OneDriveModule } from './onedrive/onedrive.module';
+import { TestController } from './documents/documents.controller';
 
 @Module({
   imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule, OneDriveModule],
-  controllers: [AppController, LinkedAccountsController, OneDriveController],
+  controllers: [AppController, LinkedAccountsController, OneDriveController, TestController],
   providers: [AppService, RagService, LinkedAccountsService],
 })
 export class AppModule {}
