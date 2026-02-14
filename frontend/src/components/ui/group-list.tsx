@@ -21,7 +21,7 @@ interface GroupListProps {
 
 export function GroupList({ groups, onOpen, onDelete }: GroupListProps) {
   return (
-    <ScrollArea className="h-[500px] w-[220px] rounded-md border">
+    <ScrollArea className="rounded-md border">
       <div className="flex flex-col gap-4 p-4">
         {groups.map((group) => (
           <ContextMenu key={group.id}>
