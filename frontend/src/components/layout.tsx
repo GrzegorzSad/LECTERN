@@ -39,7 +39,7 @@ export const Layout = ({ children }: LayoutProps) => {
                 <ul className="w-96 p-4">
                   <li>
                     <NavigationMenuLink>
-                      <Link to="/docs">Introduction</Link>
+                      <Link to="/login">Login</Link>
                     </NavigationMenuLink>
                   </li>
                   <li>

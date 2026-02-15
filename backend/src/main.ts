@@ -19,7 +19,7 @@ async function bootstrap() {
     }),
   );
 
-   app.use(
+  app.use(
     session({
       // store: //could import bits and specify smth here instead of deeper in the code,
       secret: process.env.SESSION_SECRET || 'supersecret',
@@ -29,10 +29,13 @@ async function bootstrap() {
     }),
   );
 
-  app.enableCors();
+  app.enableCors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+  });
 
   const config = new DocumentBuilder()
-    .setTitle('LECTERN') 
+    .setTitle('LECTERN')
     .setDescription('Backend API')
     .setVersion('1.0')
     .addBearerAuth()
