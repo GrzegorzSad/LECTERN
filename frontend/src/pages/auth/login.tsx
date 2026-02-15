@@ -1,4 +1,5 @@
 import { useForm, Controller } from "react-hook-form";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Input } from "../../components/ui/input";
@@ -19,6 +20,8 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -27,9 +30,13 @@ export function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     try {
       await authApi.login(data);
+      setIsLoggedIn(true);
+      localStorage.setItem("loggedIn", "true");
       alert("Logged in");
     } catch (err) {
       console.error(err);
+      setIsLoggedIn(false);
+      localStorage.removeItem("loggedIn");
       alert("Login failed");
     }
   };
@@ -71,6 +78,10 @@ export function LoginPage() {
       <Button type="submit" className="w-full">
         Log In
       </Button>
+
+      {isLoggedIn && (
+        <div className="text-green-600 mt-2">You are logged in!</div>
+      )}
     </form>
   );
 }

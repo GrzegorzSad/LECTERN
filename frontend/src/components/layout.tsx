@@ -1,6 +1,7 @@
-// Layout.tsx
-import type { ReactNode } from "react"
-import { GroupList, type Group } from "./ui/group-list"
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { GroupList} from "./ui/group-list";
+import type { Group } from "../types/types";
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -9,25 +10,41 @@ import {
   NavigationMenuContent,
   NavigationMenuLink,
   navigationMenuTriggerStyle,
-} from "./ui/navigation-menu"
-import { Link } from "react-router-dom"
+} from "./ui/navigation-menu";
+import { Link } from "react-router-dom";
+import { authApi, groupsApi } from "../api/client";
 
 interface LayoutProps {
-  children: ReactNode
+  children: ReactNode;
+  group?: boolean;
 }
 
-export const Layout = ({ children }: LayoutProps) => {
-  const groups: Group[] = [
-    { id: "1", title: "Math", imageUrl: "https://picsum.photos/200" },
-    { id: "2", title: "Physics", imageUrl: "https://picsum.photos/201" },
-  ]
+export const Layout = ({ children, group = true }: LayoutProps) => {
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await authApi.me();
+        setLoggedIn(true);
+        const data = await groupsApi.getAll();
+        setGroups(data);
+      } catch {
+        setLoggedIn(false);
+      }
+    };
+    init();
+  }, []);
 
   return (
     <div className="h-screen grid grid-rows-[64px_1fr] grid-cols-[240px_1fr]">
       {/* Sidebar */}
-      <div className="row-start-1 row-end-3 col-start-1 border-r overflow-y-auto p-4 bg-background">
-        <GroupList groups={groups} />
-      </div>
+      {group && loggedIn && (
+        <div className="row-start-1 row-end-3 col-start-1 border-r overflow-y-auto p-4 bg-background">
+          <GroupList groups={groups} />
+        </div>
+      )}
 
       {/* Navbar */}
       <div className="row-start-1 col-start-2 border-b bg-background flex items-center px-6">
@@ -37,11 +54,13 @@ export const Layout = ({ children }: LayoutProps) => {
               <NavigationMenuTrigger>Getting started</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="w-96 p-4">
-                  <li>
-                    <NavigationMenuLink>
-                      <Link to="/login">Login</Link>
-                    </NavigationMenuLink>
-                  </li>
+                  {!loggedIn && (
+                    <li>
+                      <NavigationMenuLink>
+                        <Link to="/login">Login</Link>
+                      </NavigationMenuLink>
+                    </li>
+                  )}
                   <li>
                     <NavigationMenuLink>
                       <Link to="/docs/installation">Installation</Link>
@@ -50,11 +69,13 @@ export const Layout = ({ children }: LayoutProps) => {
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                <Link to="/docs">Docs</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
+            {!loggedIn && (
+              <NavigationMenuItem>
+                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                  <Link to="/login">Login</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            )}
           </NavigationMenuList>
         </NavigationMenu>
       </div>
@@ -64,5 +85,5 @@ export const Layout = ({ children }: LayoutProps) => {
         {children}
       </div>
     </div>
-  )
-}
+  );
+};

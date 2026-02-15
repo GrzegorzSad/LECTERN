@@ -6,12 +6,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "./context-menu"
-
-export interface Group {
-  id: string
-  title: string
-  imageUrl: string
-}
+import type { Group } from "../../types/types"
 
 interface GroupListProps {
   groups: Group[]
@@ -32,13 +27,13 @@ export function GroupList({ groups, onOpen, onDelete }: GroupListProps) {
               >
                 <div className="aspect-square w-full overflow-hidden">
                   <img
-                    src={group.imageUrl}
-                    alt={group.title}
+                    src={group.img}
+                    alt={group.name}
                     className="h-full w-full object-cover"
                   />
                 </div>
                 <div className="p-2 text-center text-sm font-medium">
-                  {group.title}
+                  {group.name}
                 </div>
               </Card>
             </ContextMenuTrigger>
