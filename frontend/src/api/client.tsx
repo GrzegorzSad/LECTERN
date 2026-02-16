@@ -81,6 +81,11 @@ export const documentsApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  get: (filters?: { groupId?: number; userId?: number }) =>
-    request("/documents", { method: "GET", query: filters }),
+  get: (groupId?: number, userId?: number) => {
+    const params = new URLSearchParams();
+    if (groupId !== undefined) params.append("groupId", String(groupId));
+    if (userId !== undefined) params.append("userId", String(userId));
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return request(`/documents/list${query}`, { method: "GET" });
+  },
 };

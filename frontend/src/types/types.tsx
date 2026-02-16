@@ -31,3 +31,18 @@ export interface GetDocumentsDto {
   groupId?: number;
   userId?: number;
 }
+
+export interface Document {
+  id: number;
+  name: string;
+  path: string;
+  mimeType: string;
+  size: number;
+  userId: number;
+  groupId: number;
+  sourceId?: number | null;
+  remoteId?: string | null;
+  isLinked?: boolean;
+  createdAt: string; 
+  updatedAt: string; 
+}
