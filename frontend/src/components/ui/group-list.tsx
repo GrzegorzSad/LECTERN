@@ -1,21 +1,23 @@
-import { ScrollArea } from "./scroll-area"
-import { Card } from "./card"
+import { ScrollArea } from "./scroll-area";
+import { Card } from "./card";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-} from "./context-menu"
-import type { Group } from "../../types/types"
-import { useNavigate } from "react-router-dom"
+} from "./context-menu";
+import type { Group } from "../../types/types";
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { Button } from "./button";
 
 interface GroupListProps {
-  groups: Group[]
-  onDelete?: (group: Group) => void
+  groups: Group[];
+  onDelete?: (group: Group) => void;
 }
 
 export function GroupList({ groups, onDelete }: GroupListProps) {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   return (
     <ScrollArea className="rounded-md border">
@@ -51,6 +53,9 @@ export function GroupList({ groups, onDelete }: GroupListProps) {
           </ContextMenu>
         ))}
       </div>
+      <Link to={`/group/create`}>
+        <Button>+</Button>
+      </Link>
     </ScrollArea>
-  )
+  );
 }

@@ -8,6 +8,7 @@ import { GroupPage } from "../pages/groups/group";
 import { UserPage } from "../pages/user/user";
 import { LinkedAccountsPage } from "../pages/linked-accounts/linkedAccounts";
 import { OneDriveListPage } from "../pages/onedrive/onedrive-list";
+import { CreateGroupPage } from "../pages/groups/create-group";
 
 export const router = createBrowserRouter([
   {
@@ -43,6 +44,14 @@ export const router = createBrowserRouter([
     element: (
       <Layout>
         <GroupPage />
+      </Layout>
+    ),
+  },
+     {
+    path: "/group/create",
+    element: (
+      <Layout>
+        <CreateGroupPage />
       </Layout>
     ),
   },
