@@ -1,11 +1,13 @@
 import {
   Controller,
   Post,
+  Get,
   UploadedFile,
   UseInterceptors,
   Body,
   Req,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DocumentsService } from './documents.service';
@@ -14,12 +16,19 @@ import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
 import { UploadDocumentDto } from './dto/upload-documents.dto';
 import { LinkDocumentDto } from './dto/link-documents.dto';
 import { CreateChunksDto } from './dto/create-chunks.dto';
+import { ListDocumentsDto } from './dto/list-documents.dto';
 import type { Request } from 'express';
 
 @ApiTags('documents')
 @Controller('documents')
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
+
+  @UseGuards(SessionAuthGuard)
+  @Get('list')
+  getDocuments(@Req() req: Request, @Query() query: ListDocumentsDto) {
+    return this.documentsService.getDocuments(query);
+  }
 
   @UseGuards(SessionAuthGuard)
   @Post('upload')

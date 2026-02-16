@@ -256,6 +256,39 @@
         ]
       }
     },
+    "/documents/list": {
+      "get": {
+        "operationId": "DocumentsController_getDocuments",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": false,
+            "in": "query",
+            "description": "groupId",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "description": "userId",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "documents"
+        ]
+      }
+    },
     "/documents/upload": {
       "post": {
         "operationId": "DocumentsController_upload",

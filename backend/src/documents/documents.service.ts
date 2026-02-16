@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OneDriveService } from 'src/onedrive/onedrive.service';
 import { LinkedAccountsService } from 'src/linked-accounts/linked-accounts.service';
 import { CreateChunksDto } from './dto/create-chunks.dto';
+import { ListDocumentsDto } from './dto/list-documents.dto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -22,6 +23,17 @@ export class DocumentsService {
     if (!fs.existsSync(this.uploadDir)) {
       fs.mkdirSync(this.uploadDir, { recursive: true });
     }
+  }
+
+  async getDocuments(dto: { groupId?: number; userId?: number }) {
+    const where: any = {};
+    if (dto.groupId) where.groupId = dto.groupId;
+    if (dto.userId) where.userId = dto.userId;
+
+    return this.prisma.file.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async uploadDocument(

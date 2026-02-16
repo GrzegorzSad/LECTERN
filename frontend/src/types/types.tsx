@@ -26,3 +26,8 @@ export interface Group {
   name: string;
   img?: string;
 }
+
+export interface GetDocumentsDto {
+  groupId?: number;
+  userId?: number;
+}
