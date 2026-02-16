@@ -45,7 +45,9 @@ export const oneDriveApi = {
 // --- Linked Accounts ---
 export const linkedAccountsApi = {
   list: () => request('/linked-accounts'),
-  redirectToMicrosoft: () => request('/linked-accounts/microsoft/connect'),
+  redirectToMicrosoft: () => {
+  window.location.href = `${BASE_URL}/linked-accounts/microsoft/connect`
+},
   microsoftCallback: () => request('/linked-accounts/microsoft/callback'),
   unlink: (id: number) => request(`/linked-accounts/${id}`, { method: 'DELETE' }),
 }

@@ -7,14 +7,16 @@ import {
   ContextMenuTrigger,
 } from "./context-menu"
 import type { Group } from "../../types/types"
+import { useNavigate } from "react-router-dom"
 
 interface GroupListProps {
   groups: Group[]
-  onOpen?: (group: Group) => void
   onDelete?: (group: Group) => void
 }
 
-export function GroupList({ groups, onOpen, onDelete }: GroupListProps) {
+export function GroupList({ groups, onDelete }: GroupListProps) {
+  const navigate = useNavigate()
+
   return (
     <ScrollArea className="rounded-md border">
       <div className="flex flex-col gap-4 p-4">
@@ -23,7 +25,7 @@ export function GroupList({ groups, onOpen, onDelete }: GroupListProps) {
             <ContextMenuTrigger>
               <Card
                 className="cursor-pointer overflow-hidden transition hover:shadow-md"
-                onClick={() => onOpen?.(group)}
+                onClick={() => navigate(`/group/${group.id}`)}
               >
                 <div className="aspect-square w-full overflow-hidden">
                   <img
@@ -39,7 +41,7 @@ export function GroupList({ groups, onOpen, onDelete }: GroupListProps) {
             </ContextMenuTrigger>
 
             <ContextMenuContent>
-              <ContextMenuItem onClick={() => onOpen?.(group)}>
+              <ContextMenuItem onClick={() => navigate(`/group/${group.id}`)}>
                 Open
               </ContextMenuItem>
               <ContextMenuItem onClick={() => onDelete?.(group)}>
