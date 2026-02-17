@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { groupsApi, documentsApi } from "../../api/client";
-import type { Group } from "../../types/types";
-import type { Document } from "../../types/types"; // make sure you have a type for files
+import { groupsApi, documentsApi, gptApi } from "../../api/client";
+import type { Group, Document } from "../../types/types";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 
@@ -13,6 +12,10 @@ export function GroupPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
+
   useEffect(() => {
     if (!id) return;
 
@@ -22,7 +25,7 @@ export function GroupPage() {
         setGroup(groupData);
 
         const filesData = await documentsApi.get(Number(id));
-        setFiles(filesData as any);
+        setFiles(filesData as Document[]);
       } catch {
         setError(true);
       } finally {
@@ -32,6 +35,21 @@ export function GroupPage() {
 
     fetchData();
   }, [id]);
+
+  const handleAsk = async () => {
+    if (!question.trim()) return;
+
+    try {
+      setAsking(true);
+      setAnswer(null);
+      const res = await gptApi.ask(question as any); //HERE TODO
+      setAnswer(res.answer);
+    } catch {
+      setAnswer("Error getting response.");
+    } finally {
+      setAsking(false);
+    }
+  };
 
   if (loading) return <div>Loading...</div>;
   if (error || !group) return <div>Group not found</div>;
@@ -64,7 +82,7 @@ export function GroupPage() {
             {files.map((file) => (
               <li key={file.id}>
                 <a
-                  href={file.path} 
+                  href={file.path}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 underline"
@@ -76,6 +94,28 @@ export function GroupPage() {
           </ul>
         )}
       </div>
+
+      <Card className="p-6 space-y-4">
+        <h2 className="text-xl font-semibold">Ask GPT</h2>
+
+        <div className="flex gap-2">
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Ask something about these files..."
+            className="flex-1 border rounded px-3 py-2"
+          />
+          <Button onClick={handleAsk} disabled={asking}>
+            {asking ? "Asking..." : "Ask"}
+          </Button>
+        </div>
+
+        {answer && (
+          <div className="whitespace-pre-wrap border rounded p-3 bg-muted">
+            {answer}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

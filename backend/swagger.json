@@ -142,9 +142,9 @@
         ]
       }
     },
-    "/test/ask": {
+    "/gpt/ask": {
       "post": {
-        "operationId": "TestController_ask",
+        "operationId": "GptController_ask",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -162,7 +162,7 @@
           }
         },
         "tags": [
-          "Test"
+          "gpt"
         ]
       }
     },

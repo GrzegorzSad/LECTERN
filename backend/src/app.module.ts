@@ -12,11 +12,13 @@ import { LinkedAccountsService } from './linked-accounts/linked-accounts.service
 import { LinkedAccountsModule } from './linked-accounts/linked-accounts.module';
 import { OneDriveController } from './onedrive/onedrive.controller';
 import { OneDriveModule } from './onedrive/onedrive.module';
-import { TestController } from './documents/documents.controller';
+import { GptService } from './gpt/gpt.service';
+import { GptController } from './gpt/gpt.controller';
+import { GptModule } from './gpt/gpt.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule, OneDriveModule],
-  controllers: [AppController, LinkedAccountsController, OneDriveController, TestController],
-  providers: [AppService, RagService, LinkedAccountsService],
+  imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule, OneDriveModule, GptModule],
+  controllers: [AppController, LinkedAccountsController, OneDriveController, GptController],
+  providers: [AppService, RagService, LinkedAccountsService, GptService],
 })
 export class AppModule {}

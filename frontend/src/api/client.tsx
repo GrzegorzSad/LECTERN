@@ -5,6 +5,7 @@ import type {
   CreateChunksDto,
   CreateGroupDto,
   Group,
+  GptAskResponse
 } from "../types/types";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -64,10 +65,13 @@ export const linkedAccountsApi = {
     request(`/linked-accounts/${id}`, { method: "DELETE" }),
 };
 
-// --- Test ---
-export const testApi = {
-  ask: (data: AskDto) =>
-    request("/test/ask", { method: "POST", body: JSON.stringify(data) }),
+// --- Gpt ---
+export const gptApi = {
+  ask: (query: string) =>
+    request<GptAskResponse>("/gpt/ask", {
+      method: "POST",
+      body: JSON.stringify({ query }),
+    }),
 };
 
 // --- Documents ---

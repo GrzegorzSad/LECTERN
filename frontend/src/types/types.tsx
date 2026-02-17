@@ -2,6 +2,13 @@ export interface AskDto {
   query: string;
 }
 
+export interface GptAskResponse {
+  answer: string;
+  chunks: {
+    preview: string;
+  }[];
+}
+
 export interface CreateUserDto {
   name: string;
   email: string;
