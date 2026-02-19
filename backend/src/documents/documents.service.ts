@@ -114,13 +114,17 @@ export class DocumentsService {
     sourceId?: number,
   ) {
     let itemId = link;
+
     try {
       const url = new URL(link);
+
       if (url.hostname === 'graph.microsoft.com') {
         const match = url.pathname.match(
           /\/me\/drive\/items\/([^\/]+)\/content/,
         );
+
         if (!match) throw new Error('Invalid OneDrive link format');
+
         itemId = match[1];
       }
     } catch {
@@ -128,16 +132,22 @@ export class DocumentsService {
     }
 
     try {
-      const fileBuffer = await this.oneDriveService.downloadFile(
+      const metadata = await this.oneDriveService.getFileMetadata(
         userId,
         itemId,
       );
 
+      if (metadata.folder) {
+        throw new BadRequestException('Cannot link folders');
+      }
+
+      const buffer = await this.oneDriveService.downloadFile(userId, itemId);
+
       const fileLikeMulter: Express.Multer.File = {
-        buffer: fileBuffer,
-        originalname: `onedrive-${itemId}`,
-        mimetype: 'application/octet-stream',
-        size: fileBuffer.length,
+        buffer,
+        originalname: metadata.name,
+        mimetype: metadata.file?.mimeType || 'application/octet-stream',
+        size: buffer.length,
         fieldname: 'file',
         encoding: '7bit',
         destination: '',
@@ -155,10 +165,6 @@ export class DocumentsService {
         itemId,
       );
     } catch (err) {
-      console.error(
-        'OneDrive download error:',
-        err.response?.data || err.message,
-      );
       throw new BadRequestException('Failed to download file from OneDrive');
     }
   }

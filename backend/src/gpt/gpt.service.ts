@@ -18,15 +18,12 @@ export class GptService {
     const queryVector = embeddingResp.data[0].embedding;
     const vectorLiteral = queryVector.join(',');
 
-    const res = await this.pool.query(
-    `
-        SELECT text
-        FROM "Chunk"
-        ORDER BY vector <=> $1::vector
-        LIMIT 5
-    `,
-      [`[${vectorLiteral}]`],
-    );
+    const res = await this.pool.query(`
+      SELECT text
+      FROM "Chunk"
+      ORDER BY vector <=> ARRAY[${vectorLiteral}]::vector
+      LIMIT 3
+    `);
 
     const chunks = res.rows;
     const context = chunks.map((c) => c.text).join('\n\n---\n\n');
