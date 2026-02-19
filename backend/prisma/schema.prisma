@@ -81,12 +81,20 @@ model File {
 
 // Members
 model Member {
-  id      Int     @id @default(autoincrement())
-  group   Group   @relation(fields: [groupId], references: [id])
+  id      Int    @id @default(autoincrement())
+  group   Group  @relation(fields: [groupId], references: [id])
   groupId Int
-  user    User    @relation(fields: [userId], references: [id])
+  user    User   @relation(fields: [userId], references: [id])
   userId  Int
-  role    String
+  role    MemberRole
+
+  @@unique([groupId, userId])
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
 }
 
 // Sources

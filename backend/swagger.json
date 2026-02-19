@@ -166,6 +166,107 @@
         ]
       }
     },
+    "/members": {
+      "post": {
+        "operationId": "MembersController_addMember",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMemberDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/members/{groupId}": {
+      "get": {
+        "operationId": "MembersController_listMembers",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/members/{memberId}": {
+      "patch": {
+        "operationId": "MembersController_updateRole",
+        "parameters": [
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ]
+      },
+      "delete": {
+        "operationId": "MembersController_removeMember",
+        "parameters": [
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ]
+      }
+    },
     "/users": {
       "get": {
         "operationId": "UsersController_findAll",
@@ -528,6 +629,38 @@
         },
         "required": [
           "query"
+        ]
+      },
+      "CreateMemberDto": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "number"
+          },
+          "userId": {
+            "type": "number"
+          },
+          "role": {
+            "type": "string",
+            "example": "member"
+          }
+        },
+        "required": [
+          "groupId",
+          "userId",
+          "role"
+        ]
+      },
+      "UpdateMemberRoleDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "example": "admin"
+          }
+        },
+        "required": [
+          "role"
         ]
       },
       "CreateUserDto": {

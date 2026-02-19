@@ -15,10 +15,13 @@ import { OneDriveModule } from './onedrive/onedrive.module';
 import { GptService } from './gpt/gpt.service';
 import { GptController } from './gpt/gpt.controller';
 import { GptModule } from './gpt/gpt.module';
+import { MembersService } from './members/members.service';
+import { MembersController } from './members/members.controller';
+import { MembersModule } from './members/members.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule, OneDriveModule, GptModule],
-  controllers: [AppController, LinkedAccountsController, OneDriveController, GptController],
-  providers: [AppService, RagService, LinkedAccountsService, GptService],
+  imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule, OneDriveModule, GptModule, MembersModule],
+  controllers: [AppController, LinkedAccountsController, OneDriveController, GptController, MembersController],
+  providers: [AppService, RagService, LinkedAccountsService, GptService, MembersService],
 })
 export class AppModule {}
