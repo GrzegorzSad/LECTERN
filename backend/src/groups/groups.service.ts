@@ -18,7 +18,7 @@ export class GroupsService {
       data: {
         groupId: group.id,
         userId: creatorUserId,
-        role: 'admin',
+        role: 'ADMIN',
       },
     })
 

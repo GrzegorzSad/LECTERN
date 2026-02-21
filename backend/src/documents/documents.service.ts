@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { RagService } from '../rag/rag.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OneDriveService } from 'src/onedrive/onedrive.service';
+import { SourcesService } from 'src/sources/sources.service';
 import { LinkedAccountsService } from 'src/linked-accounts/linked-accounts.service';
 import { CreateChunksDto } from './dto/create-chunks.dto';
 import { ListDocumentsDto } from './dto/list-documents.dto';
@@ -19,6 +20,7 @@ export class DocumentsService {
     private readonly prisma: PrismaService,
     private readonly linkedAccountsService: LinkedAccountsService,
     private readonly oneDriveService: OneDriveService,
+    private readonly sourcesService: SourcesService,
   ) {
     if (!fs.existsSync(this.uploadDir)) {
       fs.mkdirSync(this.uploadDir, { recursive: true });
@@ -65,6 +67,10 @@ export class DocumentsService {
     const ext = path.extname(file.originalname);
     const filename = `${randomUUID()}${ext}`;
     const filePath = path.join(this.uploadDir, filename);
+
+    if (sourceId) {
+      await this.sourcesService.validateGroupSource(groupId, sourceId);
+    }
 
     fs.writeFileSync(filePath, file.buffer);
 
@@ -114,6 +120,10 @@ export class DocumentsService {
     sourceId?: number,
   ) {
     let itemId = link;
+
+    if (sourceId) {
+      await this.sourcesService.validateGroupSource(groupId, sourceId);
+    }
 
     try {
       const url = new URL(link);

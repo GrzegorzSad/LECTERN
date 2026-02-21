@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMemberDto } from './dto/create-member.dto';
+import { $Enums } from '@prisma/client';
 
 @Injectable()
 export class MembersService {
@@ -22,7 +23,7 @@ export class MembersService {
       data: {
         groupId: dto.groupId,
         userId: dto.userId,
-        role: dto.role,
+        role: dto.role as $Enums.MemberRole,
       },
     });
   }
@@ -43,7 +44,7 @@ export class MembersService {
 
     return this.prisma.member.update({
       where: { id: memberId },
-      data: { role },
+      data: { role: role as $Enums.MemberRole, },
     });
   }
 

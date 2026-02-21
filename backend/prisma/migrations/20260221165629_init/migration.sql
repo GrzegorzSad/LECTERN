@@ -1,3 +1,6 @@
+-- CreateEnum
+CREATE TYPE "MemberRole" AS ENUM ('OWNER', 'ADMIN', 'MEMBER');
+
 -- CreateTable
 CREATE TABLE "Session" (
     "id" TEXT NOT NULL,
@@ -34,7 +37,8 @@ CREATE TABLE "Group" (
 CREATE TABLE "Chunk" (
     "id" SERIAL NOT NULL,
     "fileName" TEXT NOT NULL,
-    "text" TEXT,
+    "text" TEXT NOT NULL,
+    -- "vector" JSONB NOT NULL,
     "relations" TEXT,
     "entities" TEXT,
     "fileId" INTEGER NOT NULL,
@@ -66,7 +70,7 @@ CREATE TABLE "Member" (
     "id" SERIAL NOT NULL,
     "groupId" INTEGER NOT NULL,
     "userId" INTEGER NOT NULL,
-    "role" TEXT NOT NULL,
+    "role" "MemberRole" NOT NULL,
 
     CONSTRAINT "Member_pkey" PRIMARY KEY ("id")
 );
@@ -100,6 +104,7 @@ CREATE TABLE "Channel" (
 -- CreateTable
 CREATE TABLE "Message" (
     "id" SERIAL NOT NULL,
+    "isAi" BOOLEAN NOT NULL DEFAULT false,
     "channelId" INTEGER NOT NULL,
     "userId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -155,6 +160,9 @@ CREATE UNIQUE INDEX "Session_sid_key" ON "Session"("sid");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Member_groupId_userId_key" ON "Member"("groupId", "userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "LinkedAccount_provider_providerUser_key" ON "LinkedAccount"("provider", "providerUser");

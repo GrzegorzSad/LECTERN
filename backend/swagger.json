@@ -267,6 +267,138 @@
         ]
       }
     },
+    "/sources": {
+      "get": {
+        "operationId": "SourcesController_getSources",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sources"
+        ]
+      },
+      "post": {
+        "operationId": "SourcesController_createSource",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/sources/{id}": {
+      "delete": {
+        "operationId": "SourcesController_deleteSource",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/sources/group/{groupId}": {
+      "get": {
+        "operationId": "SourcesController_getGroupSources",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/sources/group/{groupId}/{sourceId}": {
+      "post": {
+        "operationId": "SourcesController_addSourceToGroup",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "sourceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sources"
+        ]
+      },
+      "delete": {
+        "operationId": "SourcesController_removeSourceFromGroup",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "sourceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sources"
+        ]
+      }
+    },
     "/users": {
       "get": {
         "operationId": "UsersController_findAll",
@@ -643,16 +775,7 @@
     "schemas": {
       "AskDto": {
         "type": "object",
-        "properties": {
-          "query": {
-            "type": "string",
-            "description": "Query to ask",
-            "example": "Explain recursion."
-          }
-        },
-        "required": [
-          "query"
-        ]
+        "properties": {}
       },
       "CreateMemberDto": {
         "type": "object",

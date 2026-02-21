@@ -125,6 +125,7 @@ model Channel {
 // Messages
 model Message {
   id             Int       @id @default(autoincrement())
+  isAi           Boolean   @default(false)
   channel        Channel   @relation(fields: [channelId], references: [id])
   channelId      Int
   user           User      @relation(fields: [userId], references: [id])

@@ -18,10 +18,19 @@ import { GptModule } from './gpt/gpt.module';
 import { MembersService } from './members/members.service';
 import { MembersController } from './members/members.controller';
 import { MembersModule } from './members/members.module';
+import { SourcesService } from './sources/sources.service';
+import { SourcesController } from './sources/sources.controller';
+import { SourcesModule } from './sources/sources.module';
+import { MessagesService } from './messages/messages.service';
+import { MessagesController } from './messages/messages.controller';
+import { MessagesModule } from './messages/messages.module';
+import { ChannelsService } from './channels/channels.service';
+import { ChannelsController } from './channels/channels.controller';
+import { ChannelsModule } from './channels/channels.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule, OneDriveModule, GptModule, MembersModule],
-  controllers: [AppController, LinkedAccountsController, OneDriveController, GptController, MembersController],
-  providers: [AppService, RagService, LinkedAccountsService, GptService, MembersService],
+  imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule, OneDriveModule, GptModule, MembersModule, SourcesModule, MessagesModule, ChannelsModule],
+  controllers: [AppController, LinkedAccountsController, OneDriveController, GptController, MembersController, SourcesController, MessagesController, ChannelsController],
+  providers: [AppService, RagService, LinkedAccountsService, GptService, MembersService, SourcesService, MessagesService, ChannelsService],
 })
 export class AppModule {}
