@@ -183,4 +183,20 @@ export class DocumentsService {
 
     return this.prisma.chunk.createMany({ data: chunkRecords });
   }
+
+  async deleteDocument(fileId: number) {
+    const file = await this.prisma.file.findUnique({ where: { id: fileId } });
+
+    if (!file) throw new BadRequestException('File not found');
+
+    await this.prisma.chunk.deleteMany({ where: { fileId } });
+
+    await this.prisma.file.delete({ where: { id: fileId } });
+
+    if (file.path && fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+
+    return { success: true };
+  }
 }

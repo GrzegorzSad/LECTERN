@@ -8,6 +8,9 @@ import {
   Req,
   UseGuards,
   Query,
+  Delete,
+  Param,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DocumentsService } from './documents.service';
@@ -92,5 +95,11 @@ export class DocumentsController {
   @Post('chunks')
   storeChunks(@Body() dto: CreateChunksDto) {
     return this.documentsService.storeChunks(dto);
+  }
+
+  @UseGuards(SessionAuthGuard)
+  @Delete(':id')
+  deleteDocument(@Param('id', ParseIntPipe) id: number) {
+    return this.documentsService.deleteDocument(id);
   }
 }
