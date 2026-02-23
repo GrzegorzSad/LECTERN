@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { ScrollArea } from "./scroll-area";
-import { Card } from "./card";
+import { Card, CardHeader, CardTitle } from "./card";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -10,6 +11,7 @@ import type { Group } from "../../types/types";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Button } from "./button";
+import { cn } from "../../lib/utils";
 
 interface GroupListProps {
   groups: Group[];
@@ -18,44 +20,59 @@ interface GroupListProps {
 
 export function GroupList({ groups, onDelete }: GroupListProps) {
   const navigate = useNavigate();
+  const [selectedId, setSelectedId] = useState<number | undefined>();
+
+  const handleClick = (group: Group) => {
+    setSelectedId(group.id);
+    navigate(`/group/${group.id}`);
+  };
 
   return (
-    <ScrollArea className="rounded-md border">
-      <div className="flex flex-col gap-4 p-4">
+    <ScrollArea className="rounded-md">
+      <div className="flex flex-col gap-4">
         {groups.map((group) => (
           <ContextMenu key={group.id}>
             <ContextMenuTrigger>
               <Card
-                className="cursor-pointer overflow-hidden transition hover:shadow-md"
-                onClick={() => navigate(`/group/${group.id}`)}
+                className={cn(
+                  "cursor-pointer transition hover:shadow-md bg-transparent ring-0 shadow-none",
+                  selectedId === group.id && "ring-2 ring-primary bg-primary text-secondary",
+                )}
+                onClick={() => handleClick(group)}
               >
-                <div className="aspect-square w-full overflow-hidden">
+                {group.img && (
                   <img
                     src={group.img}
                     alt={group.name}
-                    className="h-full w-full object-cover"
+                    className="w-full h-40 object-cover"
                   />
-                </div>
-                <div className="p-2 text-center text-sm font-medium">
-                  {group.name}
-                </div>
+                )}
+                <CardHeader>
+                  <CardTitle>{group.name}</CardTitle>
+                </CardHeader>
               </Card>
             </ContextMenuTrigger>
-
             <ContextMenuContent>
-              <ContextMenuItem onClick={() => navigate(`/group/${group.id}`)}>
+              <ContextMenuItem onClick={() => handleClick(group)}>
                 Open
               </ContextMenuItem>
-              <ContextMenuItem onClick={() => onDelete?.(group)}>
+              <ContextMenuItem
+                className="text-destructive"
+                onClick={() => onDelete?.(group)}
+              >
                 Delete
               </ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
         ))}
       </div>
-      <Link to={`/group/create`}>
-        <Button>+</Button>
-      </Link>
+      <div className="p-4 pt-0">
+        <Link to="/group/create">
+          <Button className="w-full" variant="outline">
+            + New Group
+          </Button>
+        </Link>
+      </div>
     </ScrollArea>
   );
 }

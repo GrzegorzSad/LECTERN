@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { GroupList } from "./ui/group-list";
 import type { Group } from "../types/types";
+import { Card } from "./ui/card";
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -13,6 +14,7 @@ import {
 } from "./ui/navigation-menu";
 import { Link } from "react-router-dom";
 import { authApi, groupsApi } from "../api/client";
+import { useDarkMode } from "../hooks/useDarkMode";
 
 interface LayoutProps {
   children: ReactNode;
@@ -22,6 +24,7 @@ interface LayoutProps {
 export const Layout = ({ children, showGroup = true }: LayoutProps) => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loggedIn, setLoggedIn] = useState(false);
+  const { isDark, toggle } = useDarkMode();
 
   useEffect(() => {
     const init = async () => {
@@ -42,7 +45,9 @@ export const Layout = ({ children, showGroup = true }: LayoutProps) => {
       {/* Sidebar */}
       {showGroup && loggedIn && (
         <div className="row-start-1 row-end-3 col-start-1 border-r overflow-y-auto p-4 bg-background">
+            <Card className="p-2">
           <GroupList groups={groups} />
+          </Card>
         </div>
       )}
 
@@ -83,6 +88,15 @@ export const Layout = ({ children, showGroup = true }: LayoutProps) => {
                 </NavigationMenuItem>
               </>
             )}
+            <NavigationMenuItem>
+              <NavigationMenuLink
+                className={navigationMenuTriggerStyle()}
+                onClick={toggle}
+                style={{ cursor: "pointer" }}
+              >
+                {isDark ? "☀️ Light" : "🌙 Dark"}
+              </NavigationMenuLink>
+            </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
       </div>
