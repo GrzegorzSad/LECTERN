@@ -2,42 +2,22 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import OpenAI from 'openai';
 import { PrismaService } from '../prisma/prisma.service';
 import { OpenAIEmbeddings } from '@langchain/openai';
-import { Pool } from 'pg';
+import { RagService } from 'src/rag/rag.service';
 
 @Injectable()
 export class GptService {
   private openai = new OpenAI({ apiKey: process.env.OPEN_API_KEY });
-  private pool = new Pool({ connectionString: process.env.DATABASE_URL });
   private embeddings = new OpenAIEmbeddings({
     model: 'text-embedding-3-small',
     apiKey: process.env.OPEN_API_KEY,
   });
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly ragService: RagService,) {}
 
   async ask(query: string, groupId: number, channelId: number) {
     if (!query) throw new BadRequestException('No query provided');
 
-    const queryVector = await this.embeddings.embedQuery(query);
-    const vectorLiteral = queryVector.join(',');
-
-    const res = await this.pool.query<{ text: string }>(
-      `
-      SELECT c.text, c.vector <=> '[${vectorLiteral}]'::vector AS distance
-      FROM "Chunk" c
-      JOIN "File" f ON f.id = c."fileId"
-      WHERE f."groupId" = $1
-      ORDER BY distance
-      LIMIT 5
-      `,
-      [groupId],
-    );
-
-    console.log(res);
-    console.log('row count:', res.rowCount);
-    console.log('first row:', res.rows[0]);
-
-    const chunks = res.rows;
+    const chunks = await this.ragService.retrieveChunks(query, groupId);
 
     if (!chunks.length) {
       return {
