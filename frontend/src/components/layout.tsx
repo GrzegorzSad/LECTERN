@@ -52,62 +52,65 @@ export const Layout = ({ children, showGroup = true }: LayoutProps) => {
       )}
 
       {/* Navbar */}
-      <div className="row-start-1 bg-background flex items-center pt-8">
-        <Card className="flex flex-grow-1 items-center">
-          <NavigationMenu>
-            <NavigationMenuList className="gap-2">
-              <NavigationMenuItem>
-                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                  <Link to="/">Home</Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-              {!loggedIn && (
-                <>
-                  <NavigationMenuItem>
-                    <NavigationMenuLink
-                      className={navigationMenuTriggerStyle()}
-                    >
-                      <Link to="/login">Login</Link>
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
-                  <NavigationMenuItem>
-                    <NavigationMenuLink
-                      className={navigationMenuTriggerStyle()}
-                    >
-                      <Link to="/register">Register</Link>
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
-                </>
-              )}
-              {loggedIn && (
-                <>
-                  <NavigationMenuItem>
-                    <NavigationMenuLink
-                      className={navigationMenuTriggerStyle()}
-                    >
-                      <Link to="/user/:id">My Account</Link>
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
-                  <NavigationMenuItem>
-                    <NavigationMenuLink
-                      className={navigationMenuTriggerStyle()}
-                    >
-                      <Link to="/logout">Logout</Link>
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
-                </>
-              )}
-              <NavigationMenuItem>
-                <NavigationMenuLink
-                  className={navigationMenuTriggerStyle()}
-                  onClick={toggle}
-                  style={{ cursor: "pointer" }}
-                >
-                  {isDark ? "☀️ Light" : "🌙 Dark"}
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+      <div className="row-start-1 col-start-2 bg-background flex items-center pt-8">
+        <Card className="flex w-full px-4">
+          <div className="flex grow items-center justify-between">
+            <h1>LECTERN</h1>
+            <NavigationMenu>
+              <NavigationMenuList className="gap-2">
+                <NavigationMenuItem>
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                    <Link to="/">Home</Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                {!loggedIn && (
+                  <>
+                    <NavigationMenuItem>
+                      <NavigationMenuLink
+                        className={navigationMenuTriggerStyle()}
+                      >
+                        <Link to="/login">Login</Link>
+                      </NavigationMenuLink>
+                    </NavigationMenuItem>
+                    <NavigationMenuItem>
+                      <NavigationMenuLink
+                        className={navigationMenuTriggerStyle()}
+                      >
+                        <Link to="/register">Register</Link>
+                      </NavigationMenuLink>
+                    </NavigationMenuItem>
+                  </>
+                )}
+                {loggedIn && (
+                  <>
+                    <NavigationMenuItem>
+                      <NavigationMenuLink
+                        className={navigationMenuTriggerStyle()}
+                      >
+                        <Link to="/user/:id">My Account</Link>
+                      </NavigationMenuLink>
+                    </NavigationMenuItem>
+                    <NavigationMenuItem>
+                      <NavigationMenuLink
+                        className={navigationMenuTriggerStyle()}
+                      >
+                        <Link to="/logout">Logout</Link>
+                      </NavigationMenuLink>
+                    </NavigationMenuItem>
+                  </>
+                )}
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    className={navigationMenuTriggerStyle()}
+                    onClick={toggle}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {isDark ? "☀️ Light" : "🌙 Dark"}
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+          </div>
         </Card>
       </div>
 
