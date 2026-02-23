@@ -37,12 +37,14 @@ export function GroupPage() {
   }, [id]);
 
   const handleAsk = async () => {
-    if (!question.trim()) return;
-
+    if (!question.trim() || !id) return;
     try {
       setAsking(true);
       setAnswer(null);
-      const res = await gptApi.ask(question as any); //HERE TODO
+      const res = await gptApi.ask({
+        query: question,
+        groupId: Number(id),
+      });
       setAnswer(res.answer);
     } catch {
       setAnswer("Error getting response.");

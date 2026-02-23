@@ -10,6 +10,6 @@ export class GptController {
 
   @Post('ask')
   ask(@Body() dto: AskDto) {
-    return this.gptService.ask(dto.query);
+    return this.gptService.ask(dto.query, dto.groupId, dto.channelId);
   }
 }

@@ -30,7 +30,7 @@ export class MessagesService {
       },
     });
 
-    const aiResponse = await this.gptService.ask(content);
+    const aiResponse = await this.gptService.ask(content, channel.groupId, channelId);
 
     const aiMessage = await this.prisma.message.create({
       data: {

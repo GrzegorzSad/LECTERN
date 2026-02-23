@@ -1,5 +1,7 @@
 export interface AskDto {
   query: string;
+  userId?: number;
+  groupId?: number;
 }
 
 export interface GptAskResponse {
@@ -50,6 +52,6 @@ export interface Document {
   sourceId?: number | null;
   remoteId?: string | null;
   isLinked?: boolean;
-  createdAt: string; 
-  updatedAt: string; 
+  createdAt: string;
+  updatedAt: string;
 }

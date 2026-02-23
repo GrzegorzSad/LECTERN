@@ -67,10 +67,10 @@ export const linkedAccountsApi = {
 
 // --- Gpt ---
 export const gptApi = {
-  ask: (query: string) =>
+  ask: (dto: AskDto) =>
     request<GptAskResponse>("/gpt/ask", {
       method: "POST",
-      body: JSON.stringify({ query }),
+      body: JSON.stringify(dto),
     }),
 };
 

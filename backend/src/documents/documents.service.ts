@@ -88,12 +88,12 @@ export class DocumentsService {
       },
     });
 
-    const ragResult = await this.ragService.forwardFile(
+    const ragResult = await this.ragService.processFile(
       file,
-      userId,
-      groupId,
-      sourceId,
-      dbFile.id,
+      // userId,
+      // groupId,
+      // sourceId,
+      // dbFile.id,
     );
 
     // Automatically store chunks if returned
