@@ -66,7 +66,7 @@ export function GroupList({ groups, onDelete }: GroupListProps) {
           </ContextMenu>
         ))}
       </div>
-      <div className="p-4 pt-0">
+      <div className="p-4 pt-4">
         <Link to="/group/create">
           <Button className="w-full" variant="outline">
             + New Group
