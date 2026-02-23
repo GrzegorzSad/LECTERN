@@ -1,11 +1,20 @@
 import type {
-  AskDto,
+  GptAskDto,
+  GptAskResponse,
   CreateUserDto,
   LoginDto,
   CreateChunksDto,
   CreateGroupDto,
+  CreateMemberDto,
+  UpdateMemberRoleDto,
+  CreateChannelDto,
+  CreateMessageDto,
   Group,
-  GptAskResponse
+  Channel,
+  Message,
+  Member,
+  Document,
+  Source,
 } from "../types/types";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -16,7 +25,6 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
-
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json() as Promise<T>;
 }
@@ -41,10 +49,80 @@ export const groupsApi = {
   getAll: () => request<Group[]>("/Groups"),
   get: (id: number) => request<Group>(`/Groups/${id}`),
   create: (data: CreateGroupDto) =>
-    request("/Groups", { method: "POST", body: JSON.stringify(data) }),
-  update: (id: number, data: CreateGroupDto) =>
-    request(`/Groups/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    request<Group>("/Groups", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: number, data: Partial<CreateGroupDto>) =>
+    request<Group>(`/Groups/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   remove: (id: number) => request(`/Groups/${id}`, { method: "DELETE" }),
+};
+
+// --- Members ---
+export const membersApi = {
+  add: (data: CreateMemberDto) =>
+    request<Member>("/members", { method: "POST", body: JSON.stringify(data) }),
+  list: (groupId: number) => request<Member[]>(`/members/${groupId}`),
+  updateRole: (memberId: number, data: UpdateMemberRoleDto) =>
+    request<Member>(`/members/${memberId}`, { method: "PATCH", body: JSON.stringify(data) }),
+  remove: (memberId: number) =>
+    request(`/members/${memberId}`, { method: "DELETE" }),
+};
+
+// --- Channels ---
+export const channelsApi = {
+  create: (groupId: number, data: CreateChannelDto) =>
+    request<Channel>(`/groups/${groupId}/channels`, { method: "POST", body: JSON.stringify(data) }),
+  list: (groupId: number) =>
+    request<Channel[]>(`/groups/${groupId}/channels`),
+  update: (groupId: number, channelId: number, data: Partial<CreateChannelDto>) =>
+    request<Channel>(`/groups/${groupId}/channels/${channelId}`, { method: "PUT", body: JSON.stringify(data) }),
+  remove: (groupId: number, channelId: number) =>
+    request(`/groups/${groupId}/channels/${channelId}`, { method: "DELETE" }),
+};
+
+// --- Messages ---
+export const messagesApi = {
+  send: (channelId: number, data: CreateMessageDto) =>
+    request<{ userMessage: Message; aiMessage: Message }>(`/channels/${channelId}/messages`, { method: "POST", body: JSON.stringify(data) }),
+  list: (channelId: number) =>
+    request<Message[]>(`/channels/${channelId}/messages`),
+  remove: (channelId: number, messageId: number) =>
+    request(`/channels/${channelId}/messages/${messageId}`, { method: "DELETE" }),
+  pin: (channelId: number, messageId: number) =>
+    request<Message>(`/channels/${channelId}/messages/${messageId}/pin`, { method: "PATCH" }),
+};
+
+// --- Documents ---
+export const documentsApi = {
+  upload: (formData: FormData) =>
+    fetch(`${BASE_URL}/documents/upload`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    }).then((r) => r.json()),
+  link: (data: { groupId: number; sourceId?: number; link: string }) =>
+    request("/documents/link", { method: "POST", body: JSON.stringify(data) }),
+  storeChunks: (data: CreateChunksDto) =>
+    request("/documents/chunks", { method: "POST", body: JSON.stringify(data) }),
+  get: (groupId?: number, userId?: number) => {
+    const params = new URLSearchParams();
+    if (groupId !== undefined) params.append("groupId", String(groupId));
+    if (userId !== undefined) params.append("userId", String(userId));
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return request<Document[]>(`/documents/list${query}`);
+  },
+  remove: (id: number) => request(`/documents/${id}`, { method: "DELETE" }),
+};
+
+// --- Sources ---
+export const sourcesApi = {
+  getAll: () => request<Source[]>("/sources"),
+  create: () => request<Source>("/sources", { method: "POST" }),
+  remove: (id: number) => request(`/sources/${id}`, { method: "DELETE" }),
+  getGroupSources: (groupId: number) =>
+    request<Source[]>(`/sources/group/${groupId}`),
+  addToGroup: (groupId: number, sourceId: number) =>
+    request(`/sources/group/${groupId}/${sourceId}`, { method: "POST" }),
+  removeFromGroup: (groupId: number, sourceId: number) =>
+    request(`/sources/group/${groupId}/${sourceId}`, { method: "DELETE" }),
 };
 
 // --- OneDrive ---
@@ -65,31 +143,11 @@ export const linkedAccountsApi = {
     request(`/linked-accounts/${id}`, { method: "DELETE" }),
 };
 
-// --- Gpt ---
+// --- GPT ---
 export const gptApi = {
-  ask: (dto: AskDto) =>
+  ask: (dto: GptAskDto) =>
     request<GptAskResponse>("/gpt/ask", {
       method: "POST",
       body: JSON.stringify(dto),
     }),
-};
-
-// --- Documents ---
-export const documentsApi = {
-  upload: (formData: FormData) =>
-    request("/documents/upload", { method: "POST", body: formData }),
-  link: (data: { groupId: number; sourceId?: number; link: string }) =>
-    request("/documents/link", { method: "POST", body: JSON.stringify(data) }),
-  storeChunks: (data: CreateChunksDto) =>
-    request("/documents/chunks", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-  get: (groupId?: number, userId?: number) => {
-    const params = new URLSearchParams();
-    if (groupId !== undefined) params.append("groupId", String(groupId));
-    if (userId !== undefined) params.append("userId", String(userId));
-    const query = params.toString() ? `?${params.toString()}` : "";
-    return request(`/documents/list${query}`, { method: "GET" });
-  },
 };

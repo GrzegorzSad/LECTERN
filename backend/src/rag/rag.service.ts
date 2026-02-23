@@ -58,7 +58,7 @@ export class RagService {
     ORDER BY distance
     LIMIT 5
     `,
-      [groupId],
+      [groupId], 
     );
 
     return res.rows;
