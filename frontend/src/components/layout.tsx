@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { GroupList } from "./ui/group-list";
-import type { Group } from "../types/types";
 import { Card } from "./ui/card";
 import {
   NavigationMenu,
@@ -11,10 +9,10 @@ import {
   navigationMenuTriggerStyle,
 } from "./ui/navigation-menu";
 import { Link } from "react-router-dom";
-import { groupsApi } from "../api/client";
 import { useDarkMode } from "../hooks/useDarkMode";
 import { NavbarCenterProvider, useNavbarCenter } from "../context/NavbarCenterContext";
 import { useAuth } from "../context/AuthContext";
+import { useGroups } from "../context/GroupsContext";
 
 interface LayoutProps {
   children: ReactNode;
@@ -22,15 +20,10 @@ interface LayoutProps {
 }
 
 const LayoutInner = ({ children, showGroup = true }: LayoutProps) => {
-  const [groups, setGroups] = useState<Group[]>([]);
   const { isDark, toggle } = useDarkMode();
   const { center } = useNavbarCenter();
   const { loggedIn } = useAuth();
-
-  useEffect(() => {
-    if (!loggedIn) { setGroups([]); return; }
-    groupsApi.getAll().then(setGroups).catch(() => setGroups([]));
-  }, [loggedIn]);
+  const { groups } = useGroups();
 
   const hasSidebar = showGroup && loggedIn;
 
