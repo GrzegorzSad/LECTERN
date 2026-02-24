@@ -8,7 +8,7 @@ import {
   Body,
   ParseIntPipe,
   UseGuards,
-  Req
+  Req,
 } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
@@ -26,9 +26,10 @@ export class GroupsController {
     return this.groupsService.createGroup(dto.name, userId, dto.img);
   }
 
+  @UseGuards(SessionAuthGuard)
   @Get()
-  findAll() {
-    return this.groupsService.getGroups();
+  findAll(@Req() req: Request) {
+    return this.groupsService.getGroups(req.session.user!.id);
   }
 
   @Get(':id')

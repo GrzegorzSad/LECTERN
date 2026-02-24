@@ -217,7 +217,7 @@ export function ChatPage() {
               className="w-full border rounded px-3 py-2"
             />
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
               <Button onClick={handleDialogSubmit} disabled={!channelName.trim()}>

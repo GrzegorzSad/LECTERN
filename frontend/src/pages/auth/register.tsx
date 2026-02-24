@@ -10,6 +10,8 @@ import {
   FieldGroup,
 } from "../../components/ui/field";
 import { authApi } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const registerSchema = z.object({
   name: z.string().min(1, "Name required"),
@@ -20,18 +22,21 @@ const registerSchema = z.object({
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export function RegisterPage() {
+    const { setLoggedIn } = useAuth();
+    const navigate = useNavigate();
   const form = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: "", email: "", password: "" },
   });
+  
 
   const onSubmit = async (data: RegisterForm) => {
     try {
       await authApi.register(data);
-      alert("Registered");
+      setLoggedIn(true);
+      navigate('/');
     } catch (err) {
       console.error(err);
-      alert("Registration failed");
     }
   };
 

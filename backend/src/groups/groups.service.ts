@@ -26,8 +26,14 @@ export class GroupsService {
     });
   }
 
-  async getGroups() {
-    return this.prisma.group.findMany();
+  async getGroups(userId: number) {
+    return this.prisma.group.findMany({
+      where: {
+        members: {
+          some: { userId },
+        },
+      },
+    });
   }
 
   async getGroupById(id: number) {

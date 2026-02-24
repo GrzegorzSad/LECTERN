@@ -68,7 +68,7 @@ export function ChannelList({
         ))}
       </div>
       <div className="pt-2 mt-2 border-t">
-        <Button className="w-full" variant="outline" size="sm" onClick={onCreate}>
+        <Button variant="outline" className="w-full" size="sm" onClick={onCreate}>
           + New Channel
         </Button>
       </div>

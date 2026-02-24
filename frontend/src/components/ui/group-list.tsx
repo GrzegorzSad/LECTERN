@@ -131,8 +131,8 @@ export function GroupList({ groups }: { groups: Group[] }) {
             </ContextMenu>
           ))}
         </div>
-        <div className="p-4 pt-4">
-          <Button className="w-full" variant="outline" onClick={openCreateDialog}>
+        <div className="p-4 pt-4 border-t">
+          <Button variant="outline" className="w-full" onClick={openCreateDialog}>
             + New Group
           </Button>
         </div>
@@ -168,7 +168,7 @@ export function GroupList({ groups }: { groups: Group[] }) {
               />
             )}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={closeDialog}>
+              <Button onClick={closeDialog}>
                 Cancel
               </Button>
               <Button onClick={handleSubmit} disabled={!groupName.trim() || submitting}>

@@ -50,20 +50,12 @@ export const router = createBrowserRouter([
       </Layout>
     ),
     children: [
-      // Redirect /group/:id → /group/:id/chat by default
       { index: true, element: <Navigate to="chat" replace /> },
       { path: "chat", element: <ChatPage /> },
       { path: "data", element: <DataPage /> },
       { path: "members", element: <MembersPage /> },
+      { path: "onedrive", element: <OneDriveListPage />}
     ],
-  },
-  {
-    path: "/group/:id/onedrive",
-    element: (
-      <Layout>
-        <OneDriveListPage />
-      </Layout>
-    ),
   },
   {
     path: "/user/:id",
