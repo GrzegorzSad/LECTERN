@@ -26,7 +26,7 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: (
-      <Layout showGroup={false}>
+      <Layout>
         <LoginPage />
       </Layout>
     ),
@@ -34,7 +34,7 @@ export const router = createBrowserRouter([
   {
     path: "/register",
     element: (
-      <Layout showGroup={false}>
+      <Layout>
         <RegisterPage />
       </Layout>
     ),
@@ -77,7 +77,7 @@ export const router = createBrowserRouter([
   {
     path: "/user/:id",
     element: (
-      <Layout showGroup={false}>
+      <Layout >
         <UserPage />
       </Layout>
     ),
@@ -85,7 +85,7 @@ export const router = createBrowserRouter([
   {
     path: "/linked-accounts",
     element: (
-      <Layout showGroup={false}>
+      <Layout >
         <LinkedAccountsPage />
       </Layout>
     ),

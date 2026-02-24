@@ -1,5 +1,4 @@
 import { useForm, Controller } from "react-hook-form";
-import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Input } from "../../components/ui/input";
@@ -11,16 +10,18 @@ import {
   FieldGroup,
 } from "../../components/ui/field";
 import { authApi } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email"),
   password: z.string().min(1, "Password required"),
 });
-
 type LoginForm = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { setLoggedIn } = useAuth();
+  const navigate = useNavigate();
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -30,14 +31,11 @@ export function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     try {
       await authApi.login(data);
-      setIsLoggedIn(true);
-      localStorage.setItem("loggedIn", "true");
-      alert("Logged in");
+      setLoggedIn(true);
+      navigate("/");
     } catch (err) {
       console.error(err);
-      setIsLoggedIn(false);
-      localStorage.removeItem("loggedIn");
-      alert("Login failed");
+      form.setError("root", { message: "Invalid email or password" });
     }
   };
 
@@ -74,14 +72,18 @@ export function LoginPage() {
           )}
         />
       </FieldGroup>
-
-      <Button type="submit" className="w-full">
-        Log In
-      </Button>
-
-      {isLoggedIn && (
-        <div className="text-green-600 mt-2">You are logged in!</div>
+      {form.formState.errors.root && (
+        <p className="text-destructive text-sm">
+          {form.formState.errors.root.message}
+        </p>
       )}
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={form.formState.isSubmitting}
+      >
+        {form.formState.isSubmitting ? "Logging in..." : "Log In"}
+      </Button>
     </form>
   );
 }
