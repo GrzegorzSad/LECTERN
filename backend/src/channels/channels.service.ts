@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -10,7 +14,8 @@ export class ChannelsService {
       where: { groupId_userId: { groupId, userId } },
     });
 
-    if (!member) throw new ForbiddenException('You are not a member of this group');
+    if (!member)
+      throw new ForbiddenException('You are not a member of this group');
 
     return this.prisma.channel.create({
       data: { name, groupId },
@@ -22,7 +27,8 @@ export class ChannelsService {
       where: { groupId_userId: { groupId, userId } },
     });
 
-    if (!member) throw new ForbiddenException('You are not a member of this group');
+    if (!member)
+      throw new ForbiddenException('You are not a member of this group');
 
     return this.prisma.channel.findMany({
       where: { groupId },
@@ -54,17 +60,18 @@ export class ChannelsService {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
     });
-
     if (!channel) throw new NotFoundException('Channel not found');
 
     const member = await this.prisma.member.findUnique({
       where: { groupId_userId: { groupId: channel.groupId, userId } },
     });
-
     if (!member || (member.role !== 'ADMIN' && member.role !== 'OWNER')) {
       throw new ForbiddenException('Only admins can delete channels');
     }
 
-    return this.prisma.channel.delete({ where: { id: channelId } });
+    return this.prisma.$transaction(async (prisma) => {
+      await prisma.message.deleteMany({ where: { channelId } });
+      await prisma.channel.delete({ where: { id: channelId } });
+    });
   }
 }
