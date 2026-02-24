@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { randomBytes } from 'crypto';
+import { NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class GroupsService {
@@ -69,5 +71,31 @@ export class GroupsService {
       await prisma.file.deleteMany({ where: { groupId: id } });
       await prisma.group.delete({ where: { id } });
     });
+  }
+
+  async generateInviteToken(groupId: number) {
+    const token = randomBytes(16).toString('hex');
+    const group = await this.prisma.group.update({
+      where: { id: groupId },
+      data: { inviteToken: token },
+    });
+    return { token: group.inviteToken };
+  }
+
+  async joinByToken(token: string, userId: number) {
+    const group = await this.prisma.group.findUnique({
+      where: { inviteToken: token },
+    });
+    if (!group) throw new NotFoundException('Invalid invite link');
+
+    const existing = await this.prisma.member.findUnique({
+      where: { groupId_userId: { groupId: group.id, userId } },
+    });
+    if (existing) return group;
+
+    await this.prisma.member.create({
+      data: { groupId: group.id, userId, role: 'MEMBER' },
+    });
+    return group;
   }
 }

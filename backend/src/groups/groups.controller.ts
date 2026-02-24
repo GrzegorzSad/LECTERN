@@ -51,4 +51,16 @@ export class GroupsController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.groupsService.deleteGroup(id);
   }
+
+  @UseGuards(SessionAuthGuard)
+  @Post(':id/invite')
+  generateInvite(@Param('id', ParseIntPipe) id: number) {
+    return this.groupsService.generateInviteToken(id);
+  }
+
+  @UseGuards(SessionAuthGuard)
+  @Post('join/:token')
+  joinByToken(@Param('token') token: string, @Req() req: Request) {
+    return this.groupsService.joinByToken(token, req.session.user!.id);
+  }
 }

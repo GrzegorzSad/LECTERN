@@ -11,6 +11,7 @@ import { MembersPage } from "../pages/groups/MembersPage";
 import { UserPage } from "../pages/user/User";
 import { LinkedAccountsPage } from "../pages/linked-accounts/LinkedAccounts";
 import { OneDriveListPage } from "../pages/onedrive/OnedriveList";
+import { JoinPage } from "../pages/join/JoinPage";
 import { Navigate } from "react-router-dom";
 
 export const router = createBrowserRouter([
@@ -54,13 +55,21 @@ export const router = createBrowserRouter([
       { path: "chat", element: <ChatPage /> },
       { path: "data", element: <DataPage /> },
       { path: "members", element: <MembersPage /> },
-      { path: "onedrive", element: <OneDriveListPage />}
+      { path: "onedrive", element: <OneDriveListPage /> },
     ],
+  },
+  {
+    path: "/join/:token",
+    element: (
+      <Layout showGroup={false}>
+        <JoinPage />
+      </Layout>
+    ),
   },
   {
     path: "/user/:id",
     element: (
-      <Layout >
+      <Layout>
         <UserPage />
       </Layout>
     ),
@@ -68,7 +77,7 @@ export const router = createBrowserRouter([
   {
     path: "/linked-accounts",
     element: (
-      <Layout >
+      <Layout>
         <LinkedAccountsPage />
       </Layout>
     ),

@@ -40,6 +40,7 @@ model Group {
   groupSources   GroupSource[]
   groupAiModels  GroupAiModel[]
   privateChats   PrivateChat[]
+  inviteToken    String? @unique
 }
 
 // Chunks

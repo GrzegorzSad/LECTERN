@@ -51,8 +51,15 @@ export const groupsApi = {
   create: (data: CreateGroupDto) =>
     request<Group>("/Groups", { method: "POST", body: JSON.stringify(data) }),
   update: (id: number, data: Partial<CreateGroupDto>) =>
-    request<Group>(`/Groups/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    request<Group>(`/Groups/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
   remove: (id: number) => request(`/Groups/${id}`, { method: "DELETE" }),
+  generateInvite: (id: number) =>
+    request<{ token: string }>(`/Groups/${id}/invite`, { method: "POST" }),
+  joinByToken: (token: string) =>
+    request<Group>(`/Groups/join/${token}`, { method: "POST" }),
 };
 
 // --- Members ---
@@ -61,7 +68,10 @@ export const membersApi = {
     request<Member>("/members", { method: "POST", body: JSON.stringify(data) }),
   list: (groupId: number) => request<Member[]>(`/members/${groupId}`),
   updateRole: (memberId: number, data: UpdateMemberRoleDto) =>
-    request<Member>(`/members/${memberId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    request<Member>(`/members/${memberId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   remove: (memberId: number) =>
     request(`/members/${memberId}`, { method: "DELETE" }),
 };
@@ -69,11 +79,20 @@ export const membersApi = {
 // --- Channels ---
 export const channelsApi = {
   create: (groupId: number, data: CreateChannelDto) =>
-    request<Channel>(`/groups/${groupId}/channels`, { method: "POST", body: JSON.stringify(data) }),
-  list: (groupId: number) =>
-    request<Channel[]>(`/groups/${groupId}/channels`),
-  update: (groupId: number, channelId: number, data: Partial<CreateChannelDto>) =>
-    request<Channel>(`/groups/${groupId}/channels/${channelId}`, { method: "PUT", body: JSON.stringify(data) }),
+    request<Channel>(`/groups/${groupId}/channels`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  list: (groupId: number) => request<Channel[]>(`/groups/${groupId}/channels`),
+  update: (
+    groupId: number,
+    channelId: number,
+    data: Partial<CreateChannelDto>,
+  ) =>
+    request<Channel>(`/groups/${groupId}/channels/${channelId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
   remove: (groupId: number, channelId: number) =>
     request(`/groups/${groupId}/channels/${channelId}`, { method: "DELETE" }),
 };
@@ -81,13 +100,20 @@ export const channelsApi = {
 // --- Messages ---
 export const messagesApi = {
   send: (channelId: number, data: CreateMessageDto) =>
-    request<{ userMessage: Message; aiMessage: Message }>(`/channels/${channelId}/messages`, { method: "POST", body: JSON.stringify(data) }),
+    request<{ userMessage: Message; aiMessage: Message }>(
+      `/channels/${channelId}/messages`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
   list: (channelId: number) =>
     request<Message[]>(`/channels/${channelId}/messages`),
   remove: (channelId: number, messageId: number) =>
-    request(`/channels/${channelId}/messages/${messageId}`, { method: "DELETE" }),
+    request(`/channels/${channelId}/messages/${messageId}`, {
+      method: "DELETE",
+    }),
   pin: (channelId: number, messageId: number) =>
-    request<Message>(`/channels/${channelId}/messages/${messageId}/pin`, { method: "PATCH" }),
+    request<Message>(`/channels/${channelId}/messages/${messageId}/pin`, {
+      method: "PATCH",
+    }),
 };
 
 // --- Documents ---
@@ -101,7 +127,10 @@ export const documentsApi = {
   link: (data: { groupId: number; sourceId?: number; link: string }) =>
     request("/documents/link", { method: "POST", body: JSON.stringify(data) }),
   storeChunks: (data: CreateChunksDto) =>
-    request("/documents/chunks", { method: "POST", body: JSON.stringify(data) }),
+    request("/documents/chunks", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   get: (groupId?: number, userId?: number) => {
     const params = new URLSearchParams();
     if (groupId !== undefined) params.append("groupId", String(groupId));

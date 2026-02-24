@@ -47,6 +47,11 @@ export interface Member {
   groupId: number;
   userId: number;
   role: string;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+  };
 }
 
 // --- Channels ---
@@ -90,11 +95,12 @@ export interface Document {
   path: string;
   mimeType: string;
   size: number;
-  userId: number;
   groupId: number;
+  userId: number;
+  isLinked?: boolean;
   sourceId?: number | null;
   remoteId?: string | null;
-  isLinked?: boolean;
+  info: string | null;
   createdAt: string;
   updatedAt: string;
 }

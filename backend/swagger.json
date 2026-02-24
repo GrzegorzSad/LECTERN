@@ -952,6 +952,52 @@
           "Groups"
         ]
       }
+    },
+    "/Groups/{id}/invite": {
+      "post": {
+        "operationId": "GroupsController_generateInvite",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/Groups/join/{token}": {
+      "post": {
+        "operationId": "GroupsController_joinByToken",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Groups"
+        ]
+      }
     }
   },
   "info": {
