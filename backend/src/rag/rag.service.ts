@@ -34,7 +34,8 @@ export class RagService {
     }
 
     if (mime === 'application/pdf') {
-      const data = new PDFParse(file.buffer);
+      const uint8 = new Uint8Array(file.buffer);
+      const data = new PDFParse(uint8);
       const result = await data.getText();
       return result.text;
     }
@@ -58,7 +59,7 @@ export class RagService {
     ORDER BY distance
     LIMIT 5
     `,
-      [groupId], 
+      [groupId],
     );
 
     return res.rows;
