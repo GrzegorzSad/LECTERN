@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { authApi } from "../../api/client"
-import { Card } from "../../components/ui/card"
-import { Button } from "../../components/ui/button"
+import { Card } from "../../components/card"
+import { Button } from "../../components/button"
 import { Link } from "react-router-dom"
 
 interface User {

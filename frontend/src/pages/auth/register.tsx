@@ -1,14 +1,14 @@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Input } from "../../components/ui/input";
-import { Button } from "../../components/ui/button";
+import { Input } from "../../components/input";
+import { Button } from "../../components/button";
 import {
   Field,
   FieldLabel,
   FieldError,
   FieldGroup,
-} from "../../components/ui/field";
+} from "../../components/field";
 import { authApi } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";

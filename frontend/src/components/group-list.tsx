@@ -1,27 +1,45 @@
 import { useState } from "react";
-import { ScrollArea } from "./scroll-area";
-import { Card, CardHeader, CardTitle } from "./card";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "./context-menu";
-import type { Group } from "../../types/types";
 import { useNavigate } from "react-router-dom";
+import type { Group } from "../types/types";
+import { groupsApi } from "../api/client";
+import { useGroups } from "../context/GroupsContext";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupAction,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarMenuAction,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarTrigger,
+  useSidebar,
+} from "./sidebar";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./dropdown-menu";
+
+import { Card } from "./card";
 import { Button } from "./button";
-import { cn } from "../../lib/utils";
-import { groupsApi } from "../../api/client";
-import { useGroups } from "../../context/GroupsContext";
+import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
 
 type DialogMode = "create" | "edit";
 
 export function GroupList({ groups }: { groups: Group[] }) {
   const navigate = useNavigate();
   const { addGroup, updateGroup, removeGroup } = useGroups();
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
   const [selectedId, setSelectedId] = useState<number | undefined>();
 
-  // Shared dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<DialogMode>("create");
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
@@ -90,53 +108,81 @@ export function GroupList({ groups }: { groups: Group[] }) {
 
   return (
     <>
-      <ScrollArea className="rounded-md">
-        <div className="flex flex-col gap-4">
-          {groups.map((group) => (
-            <ContextMenu key={group.id}>
-              <ContextMenuTrigger>
-                <Card
-                  className={cn(
-                    "cursor-pointer transition hover:shadow-md bg-transparent ring-0 shadow-none",
-                    selectedId === group.id && "ring-2 ring-primary bg-primary text-secondary",
+      <Sidebar collapsible="icon">
+        <SidebarHeader className="flex flex-row items-center justify-between px-2 py-2">
+          {!isCollapsed && (
+            <span className="text-sm font-semibold">LECTERN</span>
+          )}
+          <SidebarTrigger />
+        </SidebarHeader>
+
+        <SidebarContent>
+          <SidebarGroup>
+            {!isCollapsed && <SidebarGroupLabel>Groups</SidebarGroupLabel>}
+            {/* <SidebarGroupAction title="New Group" onClick={openCreateDialog}>
+              <Plus className="h-4 w-4" />
+            </SidebarGroupAction> */}
+
+            <SidebarMenu>
+              {groups.map((group) => (
+                <SidebarMenuItem key={group.id}>
+                  <SidebarMenuButton
+                    isActive={selectedId === group.id}
+                    onClick={() => handleClick(group)}
+                    tooltip={group.name}
+                    className="gap-3"
+                  >
+                    {group.img ? (
+                      <img
+                        src={group.img}
+                        alt={group.name}
+                        className="h-6 w-6 rounded object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="h-6 w-6 rounded bg-muted flex items-center justify-center text-xs font-bold shrink-0">
+                        {group.name[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    <span className="truncate">{group.name}</span>
+                  </SidebarMenuButton>
+
+                  {!isCollapsed && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <SidebarMenuAction showOnHover>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </SidebarMenuAction>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side="right" align="start">
+                        <DropdownMenuItem onClick={() => openEditDialog(group)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDelete(group)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
-                  onClick={() => handleClick(group)}
-                >
-                  {group.img && (
-                    <img
-                      src={group.img}
-                      alt={group.name}
-                      className="w-full h-40 object-cover"
-                    />
-                  )}
-                  <CardHeader>
-                    <CardTitle>{group.name}</CardTitle>
-                  </CardHeader>
-                </Card>
-              </ContextMenuTrigger>
-              <ContextMenuContent>
-                <ContextMenuItem onClick={() => handleClick(group)}>
-                  Open
-                </ContextMenuItem>
-                <ContextMenuItem onClick={() => openEditDialog(group)}>
-                  Edit
-                </ContextMenuItem>
-                <ContextMenuItem
-                  className="text-destructive"
-                  onClick={() => handleDelete(group)}
-                >
-                  Delete
-                </ContextMenuItem>
-              </ContextMenuContent>
-            </ContextMenu>
-          ))}
-        </div>
-        <div className="p-4 pt-4 border-t">
-          <Button variant="outline" className="w-full" onClick={openCreateDialog}>
-            + New Group
-          </Button>
-        </div>
-      </ScrollArea>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+
+        {!isCollapsed && (
+          <SidebarFooter className="p-2">
+            <Button variant="outline" className="w-full" onClick={openCreateDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Group
+            </Button>
+          </SidebarFooter>
+        )}
+      </Sidebar>
 
       {/* Create / Edit dialog */}
       {dialogOpen && (
@@ -168,9 +214,7 @@ export function GroupList({ groups }: { groups: Group[] }) {
               />
             )}
             <div className="flex justify-end gap-2">
-              <Button onClick={closeDialog}>
-                Cancel
-              </Button>
+              <Button variant="outline" onClick={closeDialog}>Cancel</Button>
               <Button onClick={handleSubmit} disabled={!groupName.trim() || submitting}>
                 {submitting
                   ? dialogMode === "create" ? "Creating..." : "Saving..."

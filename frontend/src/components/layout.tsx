@@ -1,18 +1,18 @@
 import type { ReactNode } from "react";
-import { GroupList } from "./ui/group-list";
-import { Card } from "./ui/card";
+import { GroupList } from "./group-list";
 import {
   NavigationMenu,
   NavigationMenuList,
   NavigationMenuItem,
   NavigationMenuLink,
   navigationMenuTriggerStyle,
-} from "./ui/navigation-menu";
+} from "./navigation-menu";
 import { Link } from "react-router-dom";
 import { useDarkMode } from "../hooks/useDarkMode";
 import { NavbarCenterProvider, useNavbarCenter } from "../context/NavbarCenterContext";
 import { useAuth } from "../context/AuthContext";
 import { useGroups } from "../context/GroupsContext";
+import { SidebarProvider, SidebarInset } from "./sidebar";
 
 interface LayoutProps {
   children: ReactNode;
@@ -21,84 +21,80 @@ interface LayoutProps {
 
 const LayoutInner = ({ children, showGroup = true }: LayoutProps) => {
   const { isDark, toggle } = useDarkMode();
-  const { center } = useNavbarCenter();
+  const { center, title } = useNavbarCenter();
   const { loggedIn } = useAuth();
   const { groups } = useGroups();
 
   const hasSidebar = showGroup && loggedIn;
 
   return (
-    <div className="h-screen grid grid-rows-[64px_1fr] grid-cols-[240px_1fr]">
-      {hasSidebar && (
-        <div className="row-start-1 row-end-3 col-start-1 overflow-y-auto pt-4 p-2 bg-background">
-          <Card className="p-2">
-            <GroupList groups={groups} />
-          </Card>
-        </div>
-      )}
+    <SidebarProvider>
+      <div className="flex h-screen w-full overflow-hidden">
+        {/* Sidebar */}
+        {hasSidebar && <GroupList groups={groups} />}
 
-      <div
-        className={`row-start-1 ${hasSidebar ? "col-start-2" : "col-start-1 col-span-2"} bg-background flex items-center mx-2 pt-8`}
-      >
-        <Card className="flex w-full px-4">
-          <div className="flex grow items-center justify-between">
-            <h1>LECTERN</h1>
+        {/* Right side */}
+        <SidebarInset className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          {/* Navbar */}
+          <div className="flex items-center px-4 pt-2 pb-2 bg-background shrink-0">
+              <div className="flex grow items-center justify-between">
+                <h1 className="font-bold max-w-40 overflow-hidden truncate">{title ?? "LECTERN"}</h1>
 
-            <div className="flex-1 flex justify-center">
-              {center}
-            </div>
+                <div className="flex-1 flex justify-center">
+                  {center}
+                </div>
 
-            <NavigationMenu>
-              <NavigationMenuList className="gap-2">
-                {!loggedIn && (
-                  <>
+                <NavigationMenu>
+                  <NavigationMenuList className="gap-2">
+                    {!loggedIn && (
+                      <>
+                        <NavigationMenuItem>
+                          <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                            <Link to="/login">Login</Link>
+                          </NavigationMenuLink>
+                        </NavigationMenuItem>
+                        <NavigationMenuItem>
+                          <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                            <Link to="/register">Register</Link>
+                          </NavigationMenuLink>
+                        </NavigationMenuItem>
+                      </>
+                    )}
+                    {loggedIn && (
+                      <>
+                        <NavigationMenuItem>
+                          <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                            <Link to="/user/:id">My Account</Link>
+                          </NavigationMenuLink>
+                        </NavigationMenuItem>
+                        <NavigationMenuItem>
+                          <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                            <Link to="/logout">Logout</Link>
+                          </NavigationMenuLink>
+                        </NavigationMenuItem>
+                      </>
+                    )}
                     <NavigationMenuItem>
-                      <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                        <Link to="/login">Login</Link>
+                      <NavigationMenuLink
+                        className={navigationMenuTriggerStyle()}
+                        onClick={toggle}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {isDark ? "☀️ Light" : "🌙 Dark"}
                       </NavigationMenuLink>
                     </NavigationMenuItem>
-                    <NavigationMenuItem>
-                      <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                        <Link to="/register">Register</Link>
-                      </NavigationMenuLink>
-                    </NavigationMenuItem>
-                  </>
-                )}
-                {loggedIn && (
-                  <>
-                    <NavigationMenuItem>
-                      <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                        <Link to="/user/:id">My Account</Link>
-                      </NavigationMenuLink>
-                    </NavigationMenuItem>
-                    <NavigationMenuItem>
-                      <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                        <Link to="/logout">Logout</Link>
-                      </NavigationMenuLink>
-                    </NavigationMenuItem>
-                  </>
-                )}
-                <NavigationMenuItem>
-                  <NavigationMenuLink
-                    className={navigationMenuTriggerStyle()}
-                    onClick={toggle}
-                    style={{ cursor: "pointer" }}
-                  >
-                    {isDark ? "☀️ Light" : "🌙 Dark"}
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
+                  </NavigationMenuList>
+                </NavigationMenu>
+              </div>
           </div>
-        </Card>
-      </div>
 
-      <div
-        className={`row-start-2 ${hasSidebar ? "col-start-2" : "col-start-1 col-span-2"} pt-8 mx-2 overflow-auto`}
-      >
-        {children}
+          {/* Main content */}
+          <div className="flex-1 overflow-auto">
+            {children}
+          </div>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 

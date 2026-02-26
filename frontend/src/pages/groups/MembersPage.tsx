@@ -3,8 +3,8 @@ import { useParams } from "react-router-dom";
 import { membersApi, groupsApi } from "../../api/client";
 import type { Member } from "../../types/types";
 import { useGroup } from "./GroupLayout";
-import { Card } from "../../components/ui/card";
-import { Button } from "../../components/ui/button";
+import { Card } from "../../components/card";
+import { Button } from "../../components/button";
 import { cn } from "../../lib/utils";
 
 const roleBadgeClass: Record<string, string> = {

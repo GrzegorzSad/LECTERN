@@ -30,15 +30,24 @@ const tabs = [
 
 export function GroupLayout() {
   const { id } = useParams();
-  const { setCenter } = useNavbarCenter();
+  const { setCenter, setTitle } = useNavbarCenter();
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    groupsApi.get(Number(id)).then(setGroup).catch(() => setError(true)).finally(() => setLoading(false));
+    groupsApi
+      .get(Number(id))
+      .then(setGroup)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (group) setTitle(group.name);
+    return () => setTitle(null);
+  }, [group]);
 
   // Inject tab buttons into the navbar center slot
   useEffect(() => {
@@ -53,14 +62,14 @@ export function GroupLayout() {
                 "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
                 isActive
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )
             }
           >
             {tab.label}
           </NavLink>
         ))}
-      </div>
+      </div>,
     );
 
     // Clean up when leaving group pages

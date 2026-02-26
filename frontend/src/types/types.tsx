@@ -81,6 +81,10 @@ export interface Message {
   parentMessageId?: number | null;
   createdAt: string;
   replies?: Message[];
+  user?: {
+    id: number;
+    name: string;
+  };
 }
 
 // --- Documents ---

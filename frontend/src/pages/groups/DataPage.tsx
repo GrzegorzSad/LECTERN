@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { documentsApi } from "../../api/client";
 import type { Document } from "../../types/types";
-import { Card } from "../../components/ui/card";
-import { Button } from "../../components/ui/button";
+import { Card } from "../../components/card";
+import { Button } from "../../components/button";
 import { useGroup } from "./GroupLayout";
 
 const formatSize = (bytes: number) => {

@@ -1,4 +1,8 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GptService } from '../gpt/gpt.service';
 
@@ -9,7 +13,19 @@ export class MessagesService {
     private readonly gptService: GptService,
   ) {}
 
-  async sendMessage(channelId: number, userId: number, content: string, parentMessageId?: number) {
+  private findMessageWithUser(id: number) {
+    return this.prisma.message.findUnique({
+      where: { id },
+      include: { user: { select: { id: true, name: true } } },
+    });
+  }
+
+  async sendMessage(
+    channelId: number,
+    userId: number,
+    content: string,
+    parentMessageId?: number,
+  ) {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
     });
@@ -18,9 +34,10 @@ export class MessagesService {
     const member = await this.prisma.member.findUnique({
       where: { groupId_userId: { groupId: channel.groupId, userId } },
     });
-    if (!member) throw new ForbiddenException('You are not a member of this group');
+    if (!member)
+      throw new ForbiddenException('You are not a member of this group');
 
-    const userMessage = await this.prisma.message.create({
+    const userMsg = await this.prisma.message.create({
       data: {
         content,
         channelId,
@@ -30,17 +47,26 @@ export class MessagesService {
       },
     });
 
-    const aiResponse = await this.gptService.ask(content, channel.groupId, channelId);
+    const aiResponse = await this.gptService.ask(
+      content,
+      channel.groupId,
+      channelId,
+    );
 
-    const aiMessage = await this.prisma.message.create({
+    const aiMsg = await this.prisma.message.create({
       data: {
         content: aiResponse.answer ?? 'No response generated',
         channelId,
-        userId, 
+        userId,
         isAi: true,
-        parentMessageId: userMessage.id,
+        parentMessageId: userMsg.id,
       },
     });
+
+    const [userMessage, aiMessage] = await Promise.all([
+      this.findMessageWithUser(userMsg.id),
+      this.findMessageWithUser(aiMsg.id),
+    ]);
 
     return {
       userMessage,
@@ -58,15 +84,15 @@ export class MessagesService {
     const member = await this.prisma.member.findUnique({
       where: { groupId_userId: { groupId: channel.groupId, userId } },
     });
-    if (!member) throw new ForbiddenException('You are not a member of this group');
+    if (!member)
+      throw new ForbiddenException('You are not a member of this group');
 
     return this.prisma.message.findMany({
       where: { channelId },
       orderBy: { createdAt: 'asc' },
       include: {
-        replies: {
-          orderBy: { createdAt: 'asc' },
-        },
+        user: { select: { id: true, name: true } },
+        replies: { orderBy: { createdAt: 'asc' } },
       },
     });
   }
@@ -81,7 +107,6 @@ export class MessagesService {
     const member = await this.prisma.member.findUnique({
       where: { groupId_userId: { groupId: message.channel.groupId, userId } },
     });
-
     const isOwnerOrAdmin = member?.role === 'ADMIN' || member?.role === 'OWNER';
     const isAuthor = message.userId === userId;
 

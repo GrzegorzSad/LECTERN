@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { groupsApi } from "../../api/client";
 import { useGroups } from "../../context/GroupsContext";
-import { Card } from "../../components/ui/card";
-import { Button } from "../../components/ui/button";
+import { Card } from "../../components/card";
+import { Button } from "../../components/button";
 
 export function JoinPage() {
   const { token } = useParams<{ token: string }>();

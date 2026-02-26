@@ -1,8 +1,8 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { oneDriveApi, documentsApi } from "../../api/client";
-import { Card } from "../../components/ui/card";
-import { Button } from "../../components/ui/button";
+import { Card } from "../../components/card";
+import { Button } from "../../components/button";
 
 interface OneDriveItem {
   id: string;

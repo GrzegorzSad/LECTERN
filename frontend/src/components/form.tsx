@@ -6,7 +6,7 @@ import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
 import * as z from "zod"
 
-import { Button } from "../../components/ui/button"
+import { Button } from "../components/button"
 import {
   Card,
   CardContent,
@@ -14,21 +14,21 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../../components/ui/card"
+} from "../components/card"
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "../../components/ui/field"
-import { Input } from "../../components/ui/input"
+} from "./field"
+import { Input } from "./input"
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupText,
   InputGroupTextarea,
-} from "../../components/ui/input-group"
+} from "./input-group"
 
 const formSchema = z.object({
   title: z
@@ -137,7 +137,7 @@ export function BugReportForm() {
       </CardContent>
       <CardFooter>
         <Field orientation="horizontal">
-          <Button type="button" variant="outline" onClick={() => form.reset()}>
+          <Button type="button" onClick={() => form.reset()}>
             Reset
           </Button>
           <Button type="submit" form="form-rhf-demo">
