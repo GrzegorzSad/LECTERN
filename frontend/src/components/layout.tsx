@@ -36,9 +36,9 @@ const LayoutInner = ({ children, showGroup = true }: LayoutProps) => {
         {/* Right side */}
         <SidebarInset className="flex flex-col flex-1 min-w-0 overflow-hidden">
           {/* Navbar */}
-          <div className="flex items-center px-4 pt-2 pb-2 bg-background shrink-0">
+          <div className="flex items-center p-2 bg-background shrink-0">
               <div className="flex grow items-center justify-between">
-                <h1 className="font-bold max-w-40 overflow-hidden truncate">{title ?? "LECTERN"}</h1>
+                <h1 className="font-bold max-w-40 overflow-hidden truncate">{title}</h1>
 
                 <div className="flex-1 flex justify-center">
                   {center}

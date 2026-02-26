@@ -38,17 +38,17 @@ export function ChannelList({
     >
       {/* Header */}
       <div className={cn(
-        "flex items-center py-2 shrink-0",
+        "flex items-center shrink-0",
         collapsed ? "justify-center" : "justify-between"
       )}>
         {!collapsed && (
-          <p className="px-2 text-xs font-semibold uppercase text-muted-foreground tracking-widest">
+          <h1 className="px-2 text-xs font-semibold text-muted-foreground">
             Channels
-          </p>
+          </h1>
         )}
         <button
           onClick={() => setCollapsed((v) => !v)}
-          className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
+          className="text-muted-foreground hover:text-foreground transition-colors px-1 rounded"
           title={collapsed ? "Expand" : "Collapse"}
         >
           {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}

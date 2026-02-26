@@ -4,6 +4,7 @@ import { channelsApi, messagesApi } from "../../api/client";
 import type { Channel, Message } from "../../types/types";
 import { Card } from "../../components/card";
 import { Button } from "../../components/button";
+import { Input } from "../../components/input";
 import { useGroup } from "./GroupLayout";
 import { ChannelList } from "../../components/channel-list";
 import { cn } from "../../lib/utils";
@@ -143,13 +144,13 @@ export function ChatPage() {
         onCreate={openCreateDialog}
       />
 
-      {/* Chat area — flex-1 so it fills remaining space, centers content inside */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Chat area */}
+      <div className="flex-1 relative overflow-hidden">
         {selectedChannel ? (
           <>
-            {/* Scrollable message area */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="max-w-2xl mx-auto px-4 py-4 flex flex-col gap-4">
+            {/* Scrollable message area — padded at bottom so messages don't hide under input */}
+            <div className="h-full overflow-y-auto">
+              <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 flex flex-col gap-4">
                 <h2 className="text-lg font-semibold"># {selectedChannel.name}</h2>
 
                 {messagesLoading && (
@@ -195,25 +196,31 @@ export function ChatPage() {
               </div>
             </div>
 
-            {/* Input — also centered and max-width constrained */}
-            <div className="shrink-0 bg-background">
-              <div className="max-w-2xl mx-auto px-4 py-2 flex gap-2">
-                <input
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleAsk()}
-                  placeholder="Ask something about these files..."
-                  className="flex-1 border rounded px-3 py-2 text-sm"
-                  disabled={asking}
-                />
-                <Button onClick={handleAsk} disabled={asking || !question.trim()}>
-                  {asking ? "Asking..." : "Send"}
-                </Button>
+            {/* Floating input bar */}
+            <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pointer-events-none">
+              <div className="max-w-2xl mx-auto pointer-events-auto">
+                <div className="flex gap-2 items-center bg-background/80 backdrop-blur-sm border rounded-xl px-3 py-2 shadow-lg">
+                  <Input
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleAsk()}
+                    placeholder="Ask something about these files..."
+                    className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                    disabled={asking}
+                  />
+                  <Button
+                    onClick={handleAsk}
+                    disabled={asking || !question.trim()}
+                    size="sm"
+                  >
+                    {asking ? "Asking..." : "Send"}
+                  </Button>
+                </div>
               </div>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="h-full flex items-center justify-center">
             <p className="text-muted-foreground">
               No channels yet — create one to get started.
             </p>
@@ -228,13 +235,12 @@ export function ChatPage() {
             <h2 className="text-lg font-semibold">
               {dialogMode === "create" ? "New Channel" : "Rename Channel"}
             </h2>
-            <input
+            <Input
               autoFocus
               value={channelName}
               onChange={(e) => setChannelName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleDialogSubmit()}
               placeholder="Channel name"
-              className="w-full border rounded px-3 py-2"
             />
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>

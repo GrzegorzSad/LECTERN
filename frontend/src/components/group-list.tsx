@@ -9,7 +9,7 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarGroupAction,
+  //SidebarGroupAction,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -111,7 +111,7 @@ export function GroupList({ groups }: { groups: Group[] }) {
       <Sidebar collapsible="icon">
         <SidebarHeader className="flex flex-row items-center justify-between px-2 py-2">
           {!isCollapsed && (
-            <span className="text-sm font-semibold">LECTERN</span>
+            <span className="text-md font-semibold">LECTERN</span>
           )}
           <SidebarTrigger />
         </SidebarHeader>
@@ -176,7 +176,7 @@ export function GroupList({ groups }: { groups: Group[] }) {
 
         {!isCollapsed && (
           <SidebarFooter className="p-2">
-            <Button variant="outline" className="w-full" onClick={openCreateDialog}>
+            <Button variant="sidebar" className="w-full" size="sm" onClick={openCreateDialog}>
               <Plus className="h-4 w-4 mr-2" />
               New Group
             </Button>
