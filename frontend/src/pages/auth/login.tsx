@@ -3,15 +3,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Input } from "../../components/input";
 import { Button } from "../../components/button";
-import {
-  Field,
-  FieldLabel,
-  FieldError,
-  FieldGroup,
-} from "../../components/field";
+import { Field, FieldLabel, FieldError, FieldGroup } from "../../components/field";
 import { authApi } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import type { User } from "../../types/types";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email"),
@@ -20,9 +16,8 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
-  const { setLoggedIn } = useAuth();
+  const { setUser } = useAuth();
   const navigate = useNavigate();
-
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -30,8 +25,8 @@ export function LoginPage() {
 
   const onSubmit = async (data: LoginForm) => {
     try {
-      await authApi.login(data);
-      setLoggedIn(true);
+      const user = await authApi.login(data);
+      setUser(user as User);
       navigate("/");
     } catch (err) {
       console.error(err);
@@ -40,10 +35,7 @@ export function LoginPage() {
   };
 
   return (
-    <form
-      onSubmit={form.handleSubmit(onSubmit)}
-      className="w-full max-w-sm mx-auto space-y-4"
-    >
+    <form onSubmit={form.handleSubmit(onSubmit)} className="w-full max-w-sm mx-auto space-y-4">
       <FieldGroup>
         <Controller
           name="email"
@@ -52,9 +44,7 @@ export function LoginPage() {
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel>Email</FieldLabel>
               <Input {...field} placeholder="you@example.com" />
-              {fieldState.error && (
-                <FieldError>{fieldState.error.message}</FieldError>
-              )}
+              {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
             </Field>
           )}
         />
@@ -65,23 +55,15 @@ export function LoginPage() {
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel>Password</FieldLabel>
               <Input {...field} type="password" placeholder="••••••••" />
-              {fieldState.error && (
-                <FieldError>{fieldState.error.message}</FieldError>
-              )}
+              {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
             </Field>
           )}
         />
       </FieldGroup>
       {form.formState.errors.root && (
-        <p className="text-destructive text-sm">
-          {form.formState.errors.root.message}
-        </p>
+        <p className="text-destructive text-sm">{form.formState.errors.root.message}</p>
       )}
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={form.formState.isSubmitting}
-      >
+      <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
         {form.formState.isSubmitting ? "Logging in..." : "Log In"}
       </Button>
     </form>

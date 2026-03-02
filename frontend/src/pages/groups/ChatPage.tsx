@@ -7,11 +7,16 @@ import { Button } from "../../components/button";
 import { Input } from "../../components/input";
 import { useGroup } from "./GroupLayout";
 import { ChannelList } from "../../components/channel-list";
+import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
+
+const formatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 
 export function ChatPage() {
   const { id } = useParams();
   const { group, loading, error } = useGroup();
+  const { user: currentUser } = useAuth();
 
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
@@ -71,18 +76,12 @@ export function ChatPage() {
   const handleDialogSubmit = async () => {
     if (!channelName.trim() || !id) return;
     if (dialogMode === "create") {
-      const newChannel = await channelsApi.create(Number(id), {
-        name: channelName.trim(),
-      });
+      const newChannel = await channelsApi.create(Number(id), { name: channelName.trim() });
       setChannels((prev) => [...prev, newChannel]);
       setSelectedChannel(newChannel);
     } else if (dialogMode === "rename" && editingChannel) {
-      const updated = await channelsApi.update(Number(id), editingChannel.id, {
-        name: channelName.trim(),
-      });
-      setChannels((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c)),
-      );
+      const updated = await channelsApi.update(Number(id), editingChannel.id, { name: channelName.trim() });
+      setChannels((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       if (selectedChannel?.id === updated.id) setSelectedChannel(updated);
     }
     setDialogOpen(false);
@@ -94,9 +93,7 @@ export function ChatPage() {
     await channelsApi.remove(Number(id), channel.id);
     const remaining = channels.filter((c) => c.id !== channel.id);
     setChannels(remaining);
-    if (selectedChannel?.id === channel.id) {
-      setSelectedChannel(remaining[0] ?? null);
-    }
+    if (selectedChannel?.id === channel.id) setSelectedChannel(remaining[0] ?? null);
   };
 
   const handleAsk = async () => {
@@ -105,10 +102,7 @@ export function ChatPage() {
     setQuestion("");
     setAsking(true);
     try {
-      const { userMessage, aiMessage } = await messagesApi.send(
-        selectedChannel.id,
-        { content },
-      );
+      const { userMessage, aiMessage } = await messagesApi.send(selectedChannel.id, { content });
       setMessages((prev) => [...prev, userMessage, aiMessage]);
     } catch {
       setMessages((prev) => [
@@ -129,12 +123,17 @@ export function ChatPage() {
     }
   };
 
+  const getMessageStyle = (msg: Message) => {
+    if (msg.isAi) return "ai";
+    if (msg.userId === currentUser?.id) return "own";
+    return "other";
+  };
+
   if (loading || channelsLoading) return <div></div>;
   if (error || !group) return <div>Group not found</div>;
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Channel sidebar */}
       <ChannelList
         channels={channels}
         selectedId={selectedChannel?.id}
@@ -144,11 +143,9 @@ export function ChatPage() {
         onCreate={openCreateDialog}
       />
 
-      {/* Chat area */}
       <div className="flex-1 relative overflow-hidden">
         {selectedChannel ? (
           <>
-            {/* Scrollable message area — padded at bottom so messages don't hide under input */}
             <div className="h-full overflow-y-auto">
               <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 flex flex-col gap-4">
                 <h2 className="text-lg font-semibold"># {selectedChannel.name}</h2>
@@ -157,36 +154,47 @@ export function ChatPage() {
                   <p className="text-muted-foreground text-sm">Loading messages...</p>
                 )}
                 {!messagesLoading && messages.length === 0 && (
-                  <p className="text-muted-foreground text-sm">
-                    No messages yet — ask something!
-                  </p>
+                  <p className="text-muted-foreground text-sm">No messages yet — ask something!</p>
                 )}
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={cn(
-                      "flex flex-col max-w-[75%] gap-1",
-                      msg.isAi ? "self-start items-start" : "self-end items-end",
-                    )}
-                  >
-                    <span className="text-xs text-muted-foreground px-1">
-                      {msg.isAi ? "AI" : (msg.user?.name ?? `User #${msg.userId}`)}
-                    </span>
+
+                {messages.map((msg) => {
+                  const style = getMessageStyle(msg);
+                  return (
                     <div
+                      key={msg.id}
                       className={cn(
-                        "rounded-lg px-4 py-2 text-sm whitespace-pre-wrap",
-                        msg.isAi
-                          ? "bg-muted text-foreground"
-                          : "bg-primary text-primary-foreground",
+                        "flex flex-col max-w-[75%] gap-1",
+                        style === "own" ? "self-end items-end" : "self-start items-start",
                       )}
                     >
-                      {msg.content}
+                      <div
+                        className={cn(
+                          "rounded-lg px-4 py-2 text-sm whitespace-pre-wrap",
+                          style === "own" && "bg-primary text-primary-foreground",
+                          style === "other" && "bg-muted text-foreground",
+                          style === "ai" && "bg-transparent text-foreground",
+                        )}
+                      >
+                        {msg.content}
+                      </div>
+
+                      {/* Name + timestamp below bubble */}
+                      <div className="flex items-center gap-1.5 px-1">
+                        {style !== "own" && (
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {style === "ai" ? "AI" : (msg.user?.name ?? `User #${msg.userId}`)}
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground/60">
+                          {formatTime(msg.createdAt)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+
                 {asking && (
                   <div className="self-start flex flex-col gap-1 items-start">
-                    <span className="text-xs text-muted-foreground px-1">AI</span>
                     <div className="bg-muted rounded-lg px-4 py-2 text-sm text-muted-foreground animate-pulse">
                       Thinking...
                     </div>
@@ -196,7 +204,6 @@ export function ChatPage() {
               </div>
             </div>
 
-            {/* Floating input bar */}
             <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pointer-events-none">
               <div className="max-w-2xl mx-auto pointer-events-auto">
                 <div className="flex gap-2 items-center bg-background/80 backdrop-blur-sm border rounded-xl px-3 py-2 shadow-lg">
@@ -208,11 +215,7 @@ export function ChatPage() {
                     className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
                     disabled={asking}
                   />
-                  <Button
-                    onClick={handleAsk}
-                    disabled={asking || !question.trim()}
-                    size="sm"
-                  >
+                  <Button onClick={handleAsk} disabled={asking || !question.trim()} size="sm">
                     {asking ? "Asking..." : "Send"}
                   </Button>
                 </div>
@@ -221,14 +224,11 @@ export function ChatPage() {
           </>
         ) : (
           <div className="h-full flex items-center justify-center">
-            <p className="text-muted-foreground">
-              No channels yet — create one to get started.
-            </p>
+            <p className="text-muted-foreground">No channels yet — create one to get started.</p>
           </div>
         )}
       </div>
 
-      {/* Create / Rename dialog */}
       {dialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <Card className="p-6 w-80 space-y-4">
@@ -243,9 +243,7 @@ export function ChatPage() {
               placeholder="Channel name"
             />
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancel
-              </Button>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleDialogSubmit} disabled={!channelName.trim()}>
                 {dialogMode === "create" ? "Create" : "Rename"}
               </Button>

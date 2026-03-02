@@ -1,26 +1,32 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { authApi } from "../api/client";
+import type { User } from "../types/types";
 
 interface AuthContextType {
   loggedIn: boolean;
-  setLoggedIn: (v: boolean) => void;
+  user: User | null;
+  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   loggedIn: false,
-  setLoggedIn: () => {},
+  user: null,
+  setUser: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    authApi.me().then(() => setLoggedIn(true)).catch(() => setLoggedIn(false));
+    authApi
+      .me()
+      .then((u) => setUser(u as User))
+      .catch(() => setUser(null));
   }, []);
 
   return (
-    <AuthContext.Provider value={{ loggedIn, setLoggedIn }}>
+    <AuthContext.Provider value={{ loggedIn: user !== null, user, setUser }}>
       {children}
     </AuthContext.Provider>
   );

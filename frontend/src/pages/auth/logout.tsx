@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 
 export function LogoutPage() {
   const navigate = useNavigate();
-  const { setLoggedIn } = useAuth();
+  const { setUser } = useAuth();
 
   useEffect(() => {
     const logout = async () => {
@@ -13,12 +13,12 @@ export function LogoutPage() {
         await authApi.logout();
       } catch {
       } finally {
-        setLoggedIn(false);
+        setUser(null);
         navigate("/", { replace: true });
       }
     };
     logout();
-  }, [navigate, setLoggedIn]);
+  }, [navigate, setUser]);
 
   return (
     <div className="flex items-center justify-center h-full">

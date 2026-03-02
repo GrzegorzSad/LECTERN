@@ -48,6 +48,25 @@ export function DataPage() {
       .finally(() => setFilesLoading(false));
   }, [id]);
 
+//   useEffect(() => {
+//   if (!id) return;
+
+//   const fakeFiles: Document[] = Array.from({ length: 30 }).map((_, i) => ({
+//     id: i + 1,
+//     name: `Document_${i + 1}.pdf`,
+//     size: Math.floor(Math.random() * 5_000_000) + 50_000,
+//     mimeType: i % 3 === 0 ? "application/pdf" : i % 3 === 1 ? "image/png" : "text/plain",
+//     createdAt: new Date(Date.now() - i * 86400000).toISOString(),
+//     path: "#",
+//     userId: (i % 5) + 1,
+//     isLinked: i % 2 === 0,
+//     sourceId: i % 2 === 0 ? null : (i % 3) + 1,
+//   }));
+
+//   setFiles(fakeFiles);
+//   setFilesLoading(false);
+// }, [id]);
+
   const handleDelete = async (file: Document) => {
     setDeletingId(file.id);
     try {
@@ -70,112 +89,117 @@ export function DataPage() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Group header */}
-      <Card className="overflow-hidden">
-        <div className="p-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{group.name}</h1>
-            <p className="text-sm text-muted-foreground">
-              {files.length} file{files.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-          <Link to={`/group/${group.id}/onedrive`}>
-            <Button>+ Add from OneDrive</Button>
-          </Link>
+  <div className="max-w-4xl mx-auto px-4 space-y-6">
+    <Card className="overflow-hidden">
+      <div className="p-5 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold">{group.name}</h1>
+          <p className="text-xs text-muted-foreground">
+            {files.length} file{files.length !== 1 ? "s" : ""}
+          </p>
         </div>
-      </Card>
-
-      {/* Files */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Files</h2>
-          <div className="flex gap-1 border rounded-md p-1 text-sm">
-            <button
-              onClick={() => setGroupBy("source")}
-              className={`px-3 py-1 rounded transition-colors ${
-                groupBy === "source"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              By source
-            </button>
-            <button
-              onClick={() => setGroupBy("user")}
-              className={`px-3 py-1 rounded transition-colors ${
-                groupBy === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              By user
-            </button>
-          </div>
-        </div>
-
-        {files.length === 0 ? (
-          <Card className="p-8 text-center text-muted-foreground">
-            No files yet — add one from OneDrive to get started.
-          </Card>
-        ) : (
-          Object.entries(grouped).map(([groupKey, groupFiles]) => (
-            <div key={groupKey} className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground px-1">
-                {groupKey}
-              </p>
-              <Card className="divide-y">
-                {groupFiles.map((file) => (
-                  <div key={file.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors">
-                    <span className="text-xl">{mimeIcon(file.mimeType)}</span>
-                    <a
-                      href={file.path}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 min-w-0 hover:underline"
-                    >
-                      <p className="font-medium truncate">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatSize(file.size)} · {formatDate(file.createdAt)}
-                      </p>
-                    </a>
-
-                    {/* Delete / confirm */}
-                    {confirmId === file.id ? (
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-muted-foreground">Delete?</span>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          disabled={deletingId === file.id}
-                          onClick={() => handleDelete(file)}
-                        >
-                          {deletingId === file.id ? "Deleting..." : "Yes"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setConfirmId(null)}
-                        >
-                          No
-                        </Button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmId(file.id)}
-                        className="shrink-0 text-muted-foreground hover:text-destructive transition-colors p-1 rounded"
-                        title="Delete file"
-                      >
-                        🗑️
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </Card>
-            </div>
-          ))
-        )}
+        <Link to={`/group/${group.id}/onedrive`}>
+          <Button size="sm">+ Add from OneDrive</Button>
+        </Link>
       </div>
+    </Card>
+
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold">Files</h2>
+        <div className="flex gap-1 border rounded-md p-1 text-xs">
+          <button
+            onClick={() => setGroupBy("source")}
+            className={`px-2 py-1 rounded transition-colors ${
+              groupBy === "source"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            By source
+          </button>
+          <button
+            onClick={() => setGroupBy("user")}
+            className={`px-2 py-1 rounded transition-colors ${
+              groupBy === "user"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            By user
+          </button>
+        </div>
+      </div>
+
+      {files.length === 0 ? (
+        <Card className="p-6 text-center text-sm text-muted-foreground">
+          No files yet — add one from OneDrive to get started.
+        </Card>
+      ) : (
+        Object.entries(grouped).map(([groupKey, groupFiles]) => (
+          <div key={groupKey} className="space-y-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-1">
+              {groupKey}
+            </p>
+            <Card className="divide-y">
+              {groupFiles.map((file) => (
+                <div
+                  key={file.id}
+                  className="flex items-center gap-3 px-3 hover:bg-muted transition-colors"
+                >
+                  <span className="text-base">{mimeIcon(file.mimeType)}</span>
+
+                  <a
+                    href={file.path}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 min-w-0 hover:underline"
+                  >
+                    <p className="text-sm font-medium truncate">
+                      {file.name}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {formatSize(file.size)} · {formatDate(file.createdAt)}
+                    </p>
+                  </a>
+
+                  {confirmId === file.id ? (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] text-muted-foreground">
+                        Delete?
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={deletingId === file.id}
+                        onClick={() => handleDelete(file)}
+                      >
+                        {deletingId === file.id ? "Deleting..." : "Yes"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setConfirmId(null)}
+                      >
+                        No
+                      </Button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmId(file.id)}
+                      className="shrink-0 text-muted-foreground hover:text-destructive transition-colors p-1 rounded text-sm"
+                      title="Delete file"
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
+              ))}
+            </Card>
+          </div>
+        ))
+      )}
     </div>
-  );
+  </div>
+);
 }

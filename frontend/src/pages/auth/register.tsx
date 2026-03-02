@@ -12,31 +12,31 @@ import {
 import { authApi } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import type { User } from "../../types/types";
 
 const registerSchema = z.object({
   name: z.string().min(1, "Name required"),
   email: z.string().email("Invalid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
-
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export function RegisterPage() {
-    const { setLoggedIn } = useAuth();
-    const navigate = useNavigate();
+  const { setUser } = useAuth();
+  const navigate = useNavigate();
   const form = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: "", email: "", password: "" },
   });
-  
 
   const onSubmit = async (data: RegisterForm) => {
     try {
-      await authApi.register(data);
-      setLoggedIn(true);
-      navigate('/');
+      const user = await authApi.register(data);
+      setUser(user as User);
+      navigate("/");
     } catch (err) {
       console.error(err);
+      form.setError("root", { message: "Registration failed" });
     }
   };
 
@@ -86,9 +86,17 @@ export function RegisterPage() {
           )}
         />
       </FieldGroup>
-
-      <Button type="submit" className="w-full">
-        Register
+      {form.formState.errors.root && (
+        <p className="text-destructive text-sm">
+          {form.formState.errors.root.message}
+        </p>
+      )}
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={form.formState.isSubmitting}
+      >
+        {form.formState.isSubmitting ? "Registering..." : "Register"}
       </Button>
     </form>
   );
