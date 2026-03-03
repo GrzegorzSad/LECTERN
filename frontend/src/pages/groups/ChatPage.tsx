@@ -10,13 +10,25 @@ import { ChannelList } from "../../components/channel-list";
 import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
 
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+const formatTime = (iso: string) => {
+  const date = new Date(iso);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  const time = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+
+  if (isToday) return time;
+  if (isYesterday) return `Yesterday ${time}`;
+  return `${date.toLocaleDateString(undefined, { day: "numeric", month: "short" })} ${time}`;
+};
 
 export function ChatPage() {
   const { id } = useParams();
   const { group, loading, error } = useGroup();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, userLoading } = useAuth();
 
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
@@ -129,7 +141,7 @@ export function ChatPage() {
     return "other";
   };
 
-  if (loading || channelsLoading) return <div></div>;
+  if (loading || channelsLoading || userLoading) return <div></div>;
   if (error || !group) return <div>Group not found</div>;
 
   return (
@@ -172,13 +184,12 @@ export function ChatPage() {
                           "rounded-lg px-4 py-2 text-sm whitespace-pre-wrap",
                           style === "own" && "bg-primary text-primary-foreground",
                           style === "other" && "bg-muted text-foreground",
-                          style === "ai" && "bg-transparent text-foreground",
+                          style === "ai" && "bg-transparent p-1 text-foreground",
                         )}
                       >
                         {msg.content}
                       </div>
 
-                      {/* Name + timestamp below bubble */}
                       <div className="flex items-center gap-1.5 px-1">
                         {style !== "own" && (
                           <span className="text-xs font-medium text-muted-foreground">

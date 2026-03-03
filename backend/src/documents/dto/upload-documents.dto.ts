@@ -19,4 +19,12 @@ export class UploadDocumentDto {
   @IsInt()
   @Type(() => Number)
   sourceId?: number;
+
+  @ApiPropertyOptional({
+    description: 'OneDrive item ID or link to link instead of uploading',
+    example: 'ABC123',
+  })
+  @IsOptional()
+  @IsString()
+  link?: string;
 }

@@ -13,7 +13,7 @@ function Card({
       data-size={size}
       data-variant={variant}
       className={cn(
-        "ring-foreground/10 bg-card text-card-foreground gap-4 overflow-hidden py-4 text-sm ring-1 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl group/card flex flex-col",
+        "rounded-md radius-2 ring-foreground/10 bg-card text-card-foreground gap-4 overflow-hidden py-4 text-sm ring-1 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl group/card flex flex-col",
         "data-[variant=ghost]:bg-transparent data-[variant=ghost]:ring-0 data-[variant=ghost]:shadow-none",
         className,
       )}
