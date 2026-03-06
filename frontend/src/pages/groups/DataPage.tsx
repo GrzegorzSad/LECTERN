@@ -143,7 +143,7 @@ export function DataPage() {
           <SearchFilter
             value={search}
             onChange={setSearch}
-            placeholder="Search users..."
+            placeholder="Search members..."
           />
         </div>
         <Link to={`/group/${group.id}/onedrive`}>

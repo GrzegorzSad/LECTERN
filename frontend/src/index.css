@@ -20,7 +20,7 @@
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424; */
 
-  --channel: oklch(66.77% 0.13129 235.026);
+  --channel: oklch(60.64% 0.13769 239.474);
   --channel-foreground: oklch(0.985 0.002 247.839);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -33,7 +33,7 @@
   --card-foreground: oklch(0.13 0.028 261.692);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.13 0.028 261.692);
-  --primary: oklch(51.335% 0.15258 253.207);
+  --primary: oklch(29.108% 0.05627 279.488);
   --primary-foreground: oklch(0.985 0.002 247.839);
   --secondary: oklch(0.967 0.003 264.542);
   --secondary-foreground: oklch(0.21 0.034 264.665);
