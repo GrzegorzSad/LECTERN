@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { documentsApi, membersApi } from "../../api/client";
 import type { Document, Member } from "../../types/types";
 import { Card } from "../../components/card";
 import { Button } from "../../components/button";
 import { SearchFilter } from "../../components/search-filter";
 import { useGroup } from "./GroupLayout";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Cloud, HardDriveUpload, X } from "lucide-react";
 
 const formatSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -25,6 +25,91 @@ const mimeIcon = (mime: string) => {
   if (mime.includes("sheet") || mime.includes("excel")) return "📊";
   return "📎";
 };
+
+interface DataSource {
+  id: string;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  href: (groupId: number) => string;
+  available: boolean;
+}
+
+const DATA_SOURCES: DataSource[] = [
+  {
+    id: "onedrive",
+    label: "OneDrive",
+    description: "Import files from your Microsoft OneDrive",
+    icon: <Cloud className="h-6 w-6" />,
+    href: (groupId) => `/group/${groupId}/onedrive`,
+    available: true,
+  },
+  {
+    id: "upload",
+    label: "Upload",
+    description: "Upload files directly from your device",
+    icon: <HardDriveUpload className="h-6 w-6" />,
+    href: (groupId) => `/group/${groupId}/upload`,
+    available: false,
+  },
+];
+
+function AddDataDialog({ groupId, onClose }: { groupId: number; onClose: () => void }) {
+  const navigate = useNavigate();
+
+  const handleSelect = (source: DataSource) => {
+    if (!source.available) return;
+    onClose();
+    navigate(source.href(groupId));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <Card className="w-96 p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold">Add Data</h2>
+            <p className="text-xs text-muted-foreground">Choose a source to import files from</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {DATA_SOURCES.map((source) => (
+            <button
+              key={source.id}
+              onClick={() => handleSelect(source)}
+              disabled={!source.available}
+              className={`
+                relative flex flex-col items-center gap-3 p-4 rounded-lg border text-center transition-all
+                ${source.available
+                  ? "hover:border-primary hover:bg-primary/5 cursor-pointer"
+                  : "opacity-40 cursor-not-allowed"
+                }
+              `}
+            >
+              <div className="text-muted-foreground">{source.icon}</div>
+              <div>
+                <p className="text-sm font-medium">{source.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{source.description}</p>
+              </div>
+              {!source.available && (
+                <span className="absolute top-2 right-2 text-[10px] font-medium bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
+                  Soon
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
 
 function UserCard({ name, files, deletingId, confirmId, onConfirm, onCancelConfirm, onDelete }: {
   name: string;
@@ -92,6 +177,7 @@ export function DataPage() {
   const [filesLoading, setFilesLoading] = useState(true);
   const [userNames, setUserNames] = useState<Record<number, string>>({});
   const [search, setSearch] = useState("");
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
@@ -137,18 +223,11 @@ export function DataPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
-      {/* Header with search and add button */}
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <SearchFilter
-            value={search}
-            onChange={setSearch}
-            placeholder="Search members..."
-          />
+          <SearchFilter value={search} onChange={setSearch} placeholder="Search users..." />
         </div>
-        <Link to={`/group/${group.id}/onedrive`}>
-          <Button size="lg">+ Add Data</Button>
-        </Link>
+        <Button size="lg" onClick={() => setAddDialogOpen(true)}>+ Add Data</Button>
       </div>
 
       {files.length === 0 ? (
@@ -170,6 +249,10 @@ export function DataPage() {
             onDelete={handleDelete}
           />
         ))
+      )}
+
+      {addDialogOpen && (
+        <AddDataDialog groupId={group.id} onClose={() => setAddDialogOpen(false)} />
       )}
     </div>
   );
