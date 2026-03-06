@@ -38,8 +38,9 @@ const LayoutInner = ({ children, showGroup = true }: LayoutProps) => {
           {/* Navbar */}
           <div className="flex items-center p-2 bg-background shrink-0">
               <div className="flex grow items-center justify-between">
-                <h1 className="font-bold max-w-40 overflow-hidden truncate">{title}</h1>
-
+                <h1 className="font-bold w-40 overflow-hidden truncate">
+                  {title}
+                </h1>
                 <div className="flex-1 flex justify-center">
                   {center}
                 </div>
@@ -80,7 +81,7 @@ const LayoutInner = ({ children, showGroup = true }: LayoutProps) => {
                         onClick={toggle}
                         style={{ cursor: "pointer" }}
                       >
-                        {isDark ? "☀️ Light" : "🌙 Dark"}
+                        {isDark ? "☀️": "🌙"}
                       </NavigationMenuLink>
                     </NavigationMenuItem>
                   </NavigationMenuList>

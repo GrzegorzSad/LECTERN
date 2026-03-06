@@ -158,6 +158,8 @@ export function ChatPage() {
       <div className="flex-1 relative overflow-hidden">
         {selectedChannel ? (
           <>
+            <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
+
             <div className="h-full overflow-y-auto">
               <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 flex flex-col gap-4">
                 <h2 className="text-lg font-semibold"># {selectedChannel.name}</h2>
@@ -182,7 +184,7 @@ export function ChatPage() {
                       <div
                         className={cn(
                           "rounded-lg px-4 py-2 text-sm whitespace-pre-wrap",
-                          style === "own" && "bg-primary text-primary-foreground",
+                          style === "own" && "bg-channel text-primary-foreground",
                           style === "other" && "bg-muted text-foreground",
                           style === "ai" && "bg-transparent p-1 text-foreground",
                         )}
@@ -226,7 +228,7 @@ export function ChatPage() {
                     className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
                     disabled={asking}
                   />
-                  <Button onClick={handleAsk} disabled={asking || !question.trim()} size="sm">
+                  <Button variant="channel" onClick={handleAsk} disabled={asking || !question.trim()} size="lg">
                     {asking ? "Asking..." : "Send"}
                   </Button>
                 </div>

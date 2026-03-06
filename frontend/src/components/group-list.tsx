@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { Group } from "../types/types";
 import { groupsApi } from "../api/client";
 import { useGroups } from "../context/GroupsContext";
+import { cn } from "../lib/utils";
 
 import {
   Sidebar,
@@ -130,7 +131,12 @@ export function GroupList({ groups }: { groups: Group[] }) {
                     isActive={selectedId === group.id}
                     onClick={() => handleClick(group)}
                     tooltip={group.name}
-                    className="gap-3"
+                    className={cn(
+                      "gap-3",
+                      selectedId === group.id
+                        ? "bg-primary! text-primary-foreground! hover:bg-primary! hover:text-primary-foreground!"
+                        : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    )}
                   >
                     {group.img ? (
                       <img
@@ -149,7 +155,14 @@ export function GroupList({ groups }: { groups: Group[] }) {
                   {!isCollapsed && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <SidebarMenuAction showOnHover>
+                        <SidebarMenuAction
+                          showOnHover
+                          className={cn(
+                            selectedId === group.id
+                              ? "text-primary-foreground! hover:bg-primary/80! hover:text-primary-foreground!"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                          )}
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </SidebarMenuAction>
                       </DropdownMenuTrigger>
@@ -176,7 +189,12 @@ export function GroupList({ groups }: { groups: Group[] }) {
 
         {!isCollapsed && (
           <SidebarFooter className="p-2">
-            <Button variant="sidebar" className="w-full" size="sm" onClick={openCreateDialog}>
+            <Button
+              variant="sidebar"
+              className="w-full"
+              size="sm"
+              onClick={openCreateDialog}
+            >
               <Plus className="h-4 w-4 mr-2" />
               New Group
             </Button>
@@ -214,11 +232,20 @@ export function GroupList({ groups }: { groups: Group[] }) {
               />
             )}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={closeDialog}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={!groupName.trim() || submitting}>
+              <Button variant="outline" onClick={closeDialog}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={!groupName.trim() || submitting}
+              >
                 {submitting
-                  ? dialogMode === "create" ? "Creating..." : "Saving..."
-                  : dialogMode === "create" ? "Create" : "Save"}
+                  ? dialogMode === "create"
+                    ? "Creating..."
+                    : "Saving..."
+                  : dialogMode === "create"
+                    ? "Create"
+                    : "Save"}
               </Button>
             </div>
           </Card>

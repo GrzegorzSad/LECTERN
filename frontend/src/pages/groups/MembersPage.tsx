@@ -5,6 +5,7 @@ import type { Member } from "../../types/types";
 import { useGroup } from "./GroupLayout";
 import { Card } from "../../components/card";
 import { Button } from "../../components/button";
+import { SearchFilter } from "../../components/search-filter";
 import { cn } from "../../lib/utils";
 
 const roleBadgeClass: Record<string, string> = {
@@ -18,6 +19,7 @@ export function MembersPage() {
   const { group, loading, error } = useGroup();
   const [members, setMembers] = useState<Member[]>([]);
   const [membersLoading, setMembersLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -34,8 +36,7 @@ export function MembersPage() {
     setGenerating(true);
     try {
       const { token } = await groupsApi.generateInvite(Number(id));
-      const link = `${window.location.origin}/join/${token}`;
-      setInviteLink(link);
+      setInviteLink(`${window.location.origin}/join/${token}`);
     } finally {
       setGenerating(false);
     }
@@ -51,18 +52,26 @@ export function MembersPage() {
   if (loading || membersLoading) return <div>Loading...</div>;
   if (error || !group) return <div>Group not found</div>;
 
+  const filtered = members.filter(m =>
+    (m.user?.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    (m.user?.email ?? "").toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="max-w-xl space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Members · {members.length}</h2>
-        <Button onClick={handleGenerateInvite} disabled={generating} size="sm">
-          {generating ? "Generating..." : "Generate invite link"}
+    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+      {/* Search + invite button */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <SearchFilter value={search} onChange={setSearch} placeholder="Search members..." />
+        </div>
+        <Button size="lg" onClick={handleGenerateInvite} disabled={generating}>
+          {generating ? "Generating..." : "+ Invite"}
         </Button>
       </div>
 
-      {/* Invite link display */}
+      {/* Invite link */}
       {inviteLink && (
-        <Card className="p-4 flex items-center gap-3">
+        <Card className="px-4 py-3 flex items-center gap-3">
           <p className="text-sm text-muted-foreground truncate flex-1">{inviteLink}</p>
           <Button size="sm" variant="outline" onClick={handleCopy}>
             {copied ? "Copied ✓" : "Copy"}
@@ -70,31 +79,33 @@ export function MembersPage() {
         </Card>
       )}
 
-      {/* Members list */}
-      <Card className="divide-y">
-        {members.map((member) => (
-          <div key={member.id} className="flex items-center justify-between px-4 py-3">
-            <div>
-              {member.user ? (
-                <>
-                  <p className="font-medium">{member.user.name}</p>
-                  <p className="text-sm text-muted-foreground">{member.user.email}</p>
-                </>
-              ) : (
-                <p className="font-medium text-muted-foreground">User #{member.userId}</p>
-              )}
-            </div>
-            <span
-              className={cn(
-                "text-xs font-semibold px-2 py-1 rounded-full",
+      {/* Members */}
+      {filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-4">
+          No members match "{search}"
+        </p>
+      ) : (
+        <Card className="overflow-hidden divide-y">
+          {filtered.map((member) => (
+            <div key={member.id} className="flex items-center gap-3 px-4 hover:bg-muted/20 transition-colors">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">
+                  {member.user?.name ?? `User #${member.userId}`}
+                </p>
+                {member.user?.email && (
+                  <p className="text-xs text-muted-foreground truncate">{member.user.email}</p>
+                )}
+              </div>
+              <span className={cn(
+                "text-xs font-semibold px-2 py-1 rounded-full shrink-0",
                 roleBadgeClass[member.role] ?? roleBadgeClass.MEMBER
-              )}
-            >
-              {member.role}
-            </span>
-          </div>
-        ))}
-      </Card>
+              )}>
+                {member.role}
+              </span>
+            </div>
+          ))}
+        </Card>
+      )}
     </div>
   );
 }

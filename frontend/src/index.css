@@ -20,6 +20,8 @@
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424; */
 
+  --channel: oklch(66.77% 0.13129 235.026);
+  --channel-foreground: oklch(0.985 0.002 247.839);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -31,7 +33,7 @@
   --card-foreground: oklch(0.13 0.028 261.692);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.13 0.028 261.692);
-  --primary: oklch(63.043% 0.12666 248.812);
+  --primary: oklch(51.335% 0.15258 253.207);
   --primary-foreground: oklch(0.985 0.002 247.839);
   --secondary: oklch(0.967 0.003 264.542);
   --secondary-foreground: oklch(0.21 0.034 264.665);
@@ -59,6 +61,9 @@
 }
 
 @theme inline {
+  --color-channel: var(--channel);
+
+  --color-channel-foreground: var(--channel-foreground);
 
   --radius-sm: calc(var(--radius) - 4px);
 
@@ -138,6 +143,9 @@
 }
 
 .dark {
+  --channel: oklch(79.456% 0.12526 198.869);
+
+  --channel-foreground: oklch(0.15 0.02 60);
 
   --background: oklch(32.471% 0.01586 285.458);
 
