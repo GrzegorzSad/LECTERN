@@ -4,6 +4,7 @@ import type { Group } from "../types/types";
 import { groupsApi } from "../api/client";
 import { useGroups } from "../context/GroupsContext";
 import { cn } from "../lib/utils";
+import { useLocation } from "react-router-dom";
 
 import {
   Sidebar,
@@ -39,7 +40,11 @@ export function GroupList({ groups }: { groups: Group[] }) {
   const { addGroup, updateGroup, removeGroup } = useGroups();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
-  const [selectedId, setSelectedId] = useState<number | undefined>();
+  const location = useLocation();
+  const selectedId = (() => {
+    const match = location.pathname.match(/\/group\/(\d+)/);
+    return match ? Number(match[1]) : undefined;
+  })();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<DialogMode>("create");
@@ -49,7 +54,6 @@ export function GroupList({ groups }: { groups: Group[] }) {
   const [submitting, setSubmitting] = useState(false);
 
   const handleClick = (group: Group) => {
-    setSelectedId(group.id);
     navigate(`/group/${group.id}`);
   };
 

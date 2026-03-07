@@ -18,7 +18,10 @@ const formatTime = (iso: string) => {
   yesterday.setDate(now.getDate() - 1);
   const isYesterday = date.toDateString() === yesterday.toDateString();
 
-  const time = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const time = date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   if (isToday) return time;
   if (isYesterday) return `Yesterday ${time}`;
@@ -59,13 +62,14 @@ export function ChatPage() {
 
   useEffect(() => {
     if (!selectedChannel) return;
+    if (userLoading) return;
     setMessagesLoading(true);
     setMessages([]);
     messagesApi
       .list(selectedChannel.id)
       .then(setMessages)
       .finally(() => setMessagesLoading(false));
-  }, [selectedChannel]);
+  }, [selectedChannel, userLoading]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -88,12 +92,18 @@ export function ChatPage() {
   const handleDialogSubmit = async () => {
     if (!channelName.trim() || !id) return;
     if (dialogMode === "create") {
-      const newChannel = await channelsApi.create(Number(id), { name: channelName.trim() });
+      const newChannel = await channelsApi.create(Number(id), {
+        name: channelName.trim(),
+      });
       setChannels((prev) => [...prev, newChannel]);
       setSelectedChannel(newChannel);
     } else if (dialogMode === "rename" && editingChannel) {
-      const updated = await channelsApi.update(Number(id), editingChannel.id, { name: channelName.trim() });
-      setChannels((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      const updated = await channelsApi.update(Number(id), editingChannel.id, {
+        name: channelName.trim(),
+      });
+      setChannels((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c)),
+      );
       if (selectedChannel?.id === updated.id) setSelectedChannel(updated);
     }
     setDialogOpen(false);
@@ -105,7 +115,8 @@ export function ChatPage() {
     await channelsApi.remove(Number(id), channel.id);
     const remaining = channels.filter((c) => c.id !== channel.id);
     setChannels(remaining);
-    if (selectedChannel?.id === channel.id) setSelectedChannel(remaining[0] ?? null);
+    if (selectedChannel?.id === channel.id)
+      setSelectedChannel(remaining[0] ?? null);
   };
 
   const handleAsk = async () => {
@@ -114,7 +125,10 @@ export function ChatPage() {
     setQuestion("");
     setAsking(true);
     try {
-      const { userMessage, aiMessage } = await messagesApi.send(selectedChannel.id, { content });
+      const { userMessage, aiMessage } = await messagesApi.send(
+        selectedChannel.id,
+        { content },
+      );
       setMessages((prev) => [...prev, userMessage, aiMessage]);
     } catch {
       setMessages((prev) => [
@@ -162,13 +176,19 @@ export function ChatPage() {
 
             <div className="h-full overflow-y-auto">
               <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 flex flex-col gap-4">
-                <h2 className="text-lg font-semibold"># {selectedChannel.name}</h2>
+                <h2 className="text-lg font-semibold">
+                  # {selectedChannel.name}
+                </h2>
 
                 {messagesLoading && (
-                  <p className="text-muted-foreground text-sm">Loading messages...</p>
+                  <p className="text-muted-foreground text-sm">
+                    Loading messages...
+                  </p>
                 )}
                 {!messagesLoading && messages.length === 0 && (
-                  <p className="text-muted-foreground text-sm">No messages yet — ask something!</p>
+                  <p className="text-muted-foreground text-sm">
+                    No messages yet — ask something!
+                  </p>
                 )}
 
                 {messages.map((msg) => {
@@ -178,15 +198,19 @@ export function ChatPage() {
                       key={msg.id}
                       className={cn(
                         "flex flex-col max-w-[75%] gap-1",
-                        style === "own" ? "self-end items-end" : "self-start items-start",
+                        style === "own"
+                          ? "self-end items-end"
+                          : "self-start items-start",
                       )}
                     >
                       <div
                         className={cn(
                           "rounded-lg px-4 py-2 text-sm whitespace-pre-wrap",
-                          style === "own" && "bg-channel text-primary-foreground",
+                          style === "own" &&
+                            "bg-channel text-primary-foreground",
                           style === "other" && "bg-muted text-foreground",
-                          style === "ai" && "bg-transparent p-1 text-foreground",
+                          style === "ai" &&
+                            "bg-transparent p-1 text-foreground",
                         )}
                       >
                         {msg.content}
@@ -195,7 +219,9 @@ export function ChatPage() {
                       <div className="flex items-center gap-1.5 px-1">
                         {style !== "own" && (
                           <span className="text-xs font-medium text-muted-foreground">
-                            {style === "ai" ? "AI" : (msg.user?.name ?? `User #${msg.userId}`)}
+                            {style === "ai"
+                              ? "AI"
+                              : (msg.user?.name ?? `User #${msg.userId}`)}
                           </span>
                         )}
                         <span className="text-xs text-muted-foreground/60">
@@ -223,12 +249,19 @@ export function ChatPage() {
                   <Input
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleAsk()}
-                    placeholder="Ask something about these files..."
+                    onKeyDown={(e) =>
+                      e.key === "Enter" && !e.shiftKey && handleAsk()
+                    }
+                    placeholder="Ask something about the files in this group..."
                     className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
                     disabled={asking}
                   />
-                  <Button variant="channel" onClick={handleAsk} disabled={asking || !question.trim()} size="lg">
+                  <Button
+                    variant="channel"
+                    onClick={handleAsk}
+                    disabled={asking || !question.trim()}
+                    size="lg"
+                  >
                     {asking ? "Asking..." : "Send"}
                   </Button>
                 </div>
@@ -237,7 +270,9 @@ export function ChatPage() {
           </>
         ) : (
           <div className="h-full flex items-center justify-center">
-            <p className="text-muted-foreground">No channels yet — create one to get started.</p>
+            <p className="text-muted-foreground">
+              No channels yet — create one to get started.
+            </p>
           </div>
         )}
       </div>
@@ -256,8 +291,13 @@ export function ChatPage() {
               placeholder="Channel name"
             />
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleDialogSubmit} disabled={!channelName.trim()}>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDialogSubmit}
+                disabled={!channelName.trim()}
+              >
                 {dialogMode === "create" ? "Create" : "Rename"}
               </Button>
             </div>

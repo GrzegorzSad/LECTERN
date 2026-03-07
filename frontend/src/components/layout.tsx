@@ -9,7 +9,10 @@ import {
 } from "./navigation-menu";
 import { Link } from "react-router-dom";
 import { useDarkMode } from "../hooks/useDarkMode";
-import { NavbarCenterProvider, useNavbarCenter } from "../context/NavbarCenterContext";
+import {
+  NavbarCenterProvider,
+  useNavbarCenter,
+} from "../context/NavbarCenterContext";
 import { useAuth } from "../context/AuthContext";
 import { useGroups } from "../context/GroupsContext";
 import { SidebarProvider, SidebarInset } from "./sidebar";
@@ -22,7 +25,7 @@ interface LayoutProps {
 const LayoutInner = ({ children, showGroup = true }: LayoutProps) => {
   const { isDark, toggle } = useDarkMode();
   const { center, title } = useNavbarCenter();
-  const { loggedIn } = useAuth();
+  const { loggedIn, user } = useAuth();
   const { groups } = useGroups();
 
   const hasSidebar = showGroup && loggedIn;
@@ -37,62 +40,57 @@ const LayoutInner = ({ children, showGroup = true }: LayoutProps) => {
         <SidebarInset className="flex flex-col flex-1 min-w-0 overflow-hidden">
           {/* Navbar */}
           <div className="flex items-center p-2 bg-background shrink-0">
-              <div className="flex grow items-center justify-between">
-                <h1 className="font-bold w-40 overflow-hidden truncate">
-                  {title}
-                </h1>
-                <div className="flex-1 flex justify-center">
-                  {center}
-                </div>
+            <div className="flex grow items-center justify-between">
+              <h1 className="font-bold w-40 overflow-hidden truncate">
+                {title}
+              </h1>
+              <div className="flex-1 flex justify-center">{center}</div>
 
-                <NavigationMenu>
-                  <NavigationMenuList className="gap-2">
-                    {!loggedIn && (
-                      <>
-                        <NavigationMenuItem>
-                          <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                            <Link to="/login">Login</Link>
-                          </NavigationMenuLink>
-                        </NavigationMenuItem>
-                        <NavigationMenuItem>
-                          <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                            <Link to="/register">Register</Link>
-                          </NavigationMenuLink>
-                        </NavigationMenuItem>
-                      </>
-                    )}
-                    {loggedIn && (
-                      <>
-                        <NavigationMenuItem>
-                          <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                            <Link to="/user/:id">My Account</Link>
-                          </NavigationMenuLink>
-                        </NavigationMenuItem>
-                        <NavigationMenuItem>
-                          <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                            <Link to="/logout">Logout</Link>
-                          </NavigationMenuLink>
-                        </NavigationMenuItem>
-                      </>
-                    )}
+              <NavigationMenu>
+                <NavigationMenuList className="gap-2">
+                  {!loggedIn && (
+                    <>
+                      <NavigationMenuItem>
+                        <NavigationMenuLink
+                          className={navigationMenuTriggerStyle()}
+                        >
+                          <Link to="/login">Login</Link>
+                        </NavigationMenuLink>
+                      </NavigationMenuItem>
+                      <NavigationMenuItem>
+                        <NavigationMenuLink
+                          className={navigationMenuTriggerStyle()}
+                        >
+                          <Link to="/register">Register</Link>
+                        </NavigationMenuLink>
+                      </NavigationMenuItem>
+                    </>
+                  )}
+                  {loggedIn && (
                     <NavigationMenuItem>
                       <NavigationMenuLink
                         className={navigationMenuTriggerStyle()}
-                        onClick={toggle}
-                        style={{ cursor: "pointer" }}
                       >
-                        {isDark ? "☀️": "🌙"}
+                        <Link to={`/user/${user?.id}`}>{user?.name}</Link>
                       </NavigationMenuLink>
                     </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-              </div>
+                  )}
+                  <NavigationMenuItem>
+                    <NavigationMenuLink
+                      className={navigationMenuTriggerStyle()}
+                      onClick={toggle}
+                      style={{ cursor: "pointer" }}
+                    >
+                      {isDark ? "☀️" : "🌙"}
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+                </NavigationMenuList>
+              </NavigationMenu>
+            </div>
           </div>
 
           {/* Main content */}
-          <div className="flex-1 overflow-auto">
-            {children}
-          </div>
+          <div className="flex-1 overflow-auto">{children}</div>
         </SidebarInset>
       </div>
     </SidebarProvider>

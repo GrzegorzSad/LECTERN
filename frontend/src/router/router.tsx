@@ -1,4 +1,5 @@
 import { createBrowserRouter } from "react-router-dom";
+import type { ReactNode } from "react";
 import Home from "../pages/Home";
 import { LoginPage } from "../pages/auth/Login";
 import { RegisterPage } from "../pages/auth/Register";
@@ -13,6 +14,17 @@ import { LinkedAccountsPage } from "../pages/linked-accounts/LinkedAccounts";
 import { OneDriveListPage } from "../pages/onedrive/OnedriveList";
 import { JoinPage } from "../pages/join/JoinPage";
 import { Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
+function RequireAuth({ children }: { children: ReactNode }) {
+  const { loggedIn, userLoading } = useAuth();
+
+  if (userLoading) return null; // or a spinner
+
+  if (!loggedIn) return <Navigate to="/login" replace />;
+
+  return <>{children}</>;
+}
 
 export const router = createBrowserRouter([
   {
@@ -46,9 +58,11 @@ export const router = createBrowserRouter([
   {
     path: "/group/:id",
     element: (
-      <Layout>
-        <GroupLayout />
-      </Layout>
+      <RequireAuth>
+        <Layout>
+          <GroupLayout />
+        </Layout>
+      </RequireAuth>
     ),
     children: [
       { index: true, element: <Navigate to="chat" replace /> },
@@ -69,17 +83,21 @@ export const router = createBrowserRouter([
   {
     path: "/user/:id",
     element: (
-      <Layout>
-        <UserPage />
-      </Layout>
+      <RequireAuth>
+        <Layout>
+          <UserPage />
+        </Layout>
+      </RequireAuth>
     ),
   },
   {
     path: "/linked-accounts",
     element: (
-      <Layout>
-        <LinkedAccountsPage />
-      </Layout>
+      <RequireAuth>
+        <Layout>
+          <LinkedAccountsPage />
+        </Layout>
+      </RequireAuth>
     ),
   },
 ]);

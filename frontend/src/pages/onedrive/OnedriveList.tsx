@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { oneDriveApi, documentsApi } from "../../api/client";
 import { Card } from "../../components/card";
 import { Button } from "../../components/button";
+import { SearchFilter } from "../../components/search-filter";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface OneDriveItem {
   id: string;
@@ -11,6 +13,7 @@ interface OneDriveItem {
   size: number;
   folder?: { childCount: number };
   file?: { mimeType: string };
+  children?: OneDriveItem[]; // populated once fetched
 }
 
 const formatSize = (bytes: number) => {
@@ -30,6 +33,144 @@ const mimeIcon = (item: OneDriveItem) => {
   return "📎";
 };
 
+// Returns true if item or any fetched descendant matches
+const itemMatches = (item: OneDriveItem, q: string): boolean => {
+  if (item.name.toLowerCase().includes(q)) return true;
+  if (item.children) return item.children.some(c => itemMatches(c, q));
+  return false;
+};
+
+function FileRow({ item, processingId, addedIds, onAdd }: {
+  item: OneDriveItem;
+  processingId: string | null;
+  addedIds: Set<string>;
+  onAdd: (item: OneDriveItem) => void;
+}) {
+  const isAdded = addedIds.has(item.id);
+  const isProcessing = processingId === item.id;
+
+  return (
+    <div className="flex items-center gap-2 px-4 py-2 hover:bg-muted/40 transition-colors">
+      <span className="text-sm shrink-0">{mimeIcon(item)}</span>
+      <a href={item.webUrl} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0">
+        <p className="text-sm truncate">{item.name}</p>
+        <p className="text-xs text-muted-foreground">
+          {item.file?.mimeType} · {formatSize(item.size)}
+        </p>
+      </a>
+      <Button
+        size="sm"
+        variant={isAdded ? "outline" : "default"}
+        disabled={isAdded || isProcessing}
+        onClick={() => onAdd(item)}
+        className="shrink-0"
+      >
+        {isProcessing ? "Adding..." : isAdded ? "Added ✓" : "Add"}
+      </Button>
+    </div>
+  );
+}
+
+function FolderCard({ item, processingId, addedIds, onAdd, search, onChildrenFetched }: {
+  item: OneDriveItem;
+  processingId: string | null;
+  addedIds: Set<string>;
+  onAdd: (item: OneDriveItem) => void;
+  search: string;
+  onChildrenFetched: (folderId: string, children: OneDriveItem[]) => void;
+}) {
+  const q = search.toLowerCase();
+  const hasSearch = q.length > 0;
+  const matchesSearch = hasSearch && itemMatches(item, q);
+
+  // Auto-expand if searching and this folder (or descendants) match
+  const [manualOpen, setManualOpen] = useState<boolean | null>(null);
+  const open = manualOpen !== null ? manualOpen : (hasSearch ? matchesSearch : false);
+
+  const [loadingChildren, setLoadingChildren] = useState(false);
+
+  const toggle = async () => {
+    const next = !open;
+    setManualOpen(next);
+    if (next && !item.children) {
+      setLoadingChildren(true);
+      try {
+        const data = await oneDriveApi.listFiles(item.id) as OneDriveItem[];
+        onChildrenFetched(item.id, data);
+      } finally {
+        setLoadingChildren(false);
+      }
+    }
+  };
+
+  // If search triggers auto-open and children haven't been fetched yet
+  useEffect(() => {
+    if (hasSearch && matchesSearch && !item.children && !loadingChildren) {
+      setLoadingChildren(true);
+      oneDriveApi.listFiles(item.id).then((data) => {
+        onChildrenFetched(item.id, data as OneDriveItem[]);
+      }).finally(() => setLoadingChildren(false));
+    }
+  }, [hasSearch, matchesSearch]);
+
+  // Filter children by search if active
+  const visibleChildren = hasSearch && item.children
+    ? item.children.filter(c => itemMatches(c, q))
+    : item.children;
+
+  if (hasSearch && !matchesSearch) return null;
+
+  return (
+    <div>
+      <button
+        onClick={toggle}
+        className="w-full flex items-center gap-2 px-4 py-2 hover:bg-muted/30 transition-colors"
+      >
+        {open
+          ? <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+          : <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />}
+        <span className="text-sm shrink-0">📁</span>
+        <span className="text-sm font-medium flex-1 text-left truncate">{item.name}</span>
+        <span className="text-xs text-muted-foreground shrink-0">
+          {loadingChildren ? "Loading..." : `${item.folder!.childCount} items`}
+        </span>
+      </button>
+
+      {open && visibleChildren !== undefined && (
+        <div className="ml-4 border-l">
+          {visibleChildren.length === 0 ? (
+            <p className="px-4 py-2 text-xs text-muted-foreground">
+              {hasSearch ? "No matches in this folder" : "Empty folder"}
+            </p>
+          ) : (
+            visibleChildren.map(child =>
+              child.folder ? (
+                <FolderCard
+                  key={child.id}
+                  item={child}
+                  processingId={processingId}
+                  addedIds={addedIds}
+                  onAdd={onAdd}
+                  search={search}
+                  onChildrenFetched={onChildrenFetched}
+                />
+              ) : (
+                <FileRow
+                  key={child.id}
+                  item={child}
+                  processingId={processingId}
+                  addedIds={addedIds}
+                  onAdd={onAdd}
+                />
+              )
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function OneDriveListPage() {
   const { id: groupId } = useParams<{ id: string }>();
   const [items, setItems] = useState<OneDriveItem[]>([]);
@@ -37,11 +178,12 @@ export function OneDriveListPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     oneDriveApi
       .listFiles()
-      .then(setItems as any)
+      .then(data => setItems(data as OneDriveItem[]))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
@@ -59,59 +201,60 @@ export function OneDriveListPage() {
     }
   };
 
+  // Update fetched children back into the items tree
+  const handleChildrenFetched = (folderId: string, children: OneDriveItem[]) => {
+    setItems(prev => updateChildren(prev, folderId, children));
+  };
+
+  const updateChildren = (list: OneDriveItem[], folderId: string, children: OneDriveItem[]): OneDriveItem[] => {
+    return list.map(item => {
+      if (item.id === folderId) return { ...item, children };
+      if (item.children) return { ...item, children: updateChildren(item.children, folderId, children) };
+      return item;
+    });
+  };
+
   if (loading) return <div>Loading OneDrive files...</div>;
   if (error) return <div>Error: {error}</div>;
 
-  return (
-    <div className="">
-      <div>
-        <h1 className="text-xl font-bold">OneDrive</h1>
-        <p className="text-sm text-muted-foreground">{items.length} items</p>
-      </div>
+  const q = search.toLowerCase();
+  const filtered = q
+    ? items.filter(item => itemMatches(item, q))
+    : items;
 
-      {items.length === 0 ? (
-        <Card className="p-8 text-center text-muted-foreground">
-          No files found in your OneDrive.
+  const folders = filtered.filter(i => i.folder);
+  const files = filtered.filter(i => !i.folder);
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+      <SearchFilter value={search} onChange={setSearch} placeholder="Search files..." />
+
+      {filtered.length === 0 ? (
+        <Card className="p-8 text-center text-sm text-muted-foreground">
+          {search ? `No items match "${search}"` : "No files found in your OneDrive."}
         </Card>
       ) : (
-        <Card className="divide-y">
-          {items.map((item) => {
-            const isAdded = addedIds.has(item.id);
-            const isProcessing = processingId === item.id;
-            const isFolder = !!item.folder;
-
-            return (
-              <div key={item.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="text-xl">{mimeIcon(item)}</span>
-                <div className="flex-1 min-w-0">
-                  <a
-                    href={item.webUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium hover:underline truncate block"
-                  >
-                    {item.name}
-                  </a>
-                  <p className="text-xs text-muted-foreground">
-                    {isFolder
-                      ? `${item.folder!.childCount} items`
-                      : item.file?.mimeType}{" "}
-                    {!isFolder && `· ${formatSize(item.size)}`}
-                  </p>
-                </div>
-                {!isFolder && (
-                  <Button
-                    size="sm"
-                    variant={isAdded ? "outline" : "default"}
-                    disabled={isAdded || isProcessing}
-                    onClick={() => addToGroup(item)}
-                  >
-                    {isProcessing ? "Adding..." : isAdded ? "Added ✓" : "Add"}
-                  </Button>
-                )}
-              </div>
-            );
-          })}
+        <Card className="overflow-hidden divide-y">
+          {folders.map(item => (
+            <FolderCard
+              key={item.id}
+              item={item}
+              processingId={processingId}
+              addedIds={addedIds}
+              onAdd={addToGroup}
+              search={search}
+              onChildrenFetched={handleChildrenFetched}
+            />
+          ))}
+          {files.map(item => (
+            <FileRow
+              key={item.id}
+              item={item}
+              processingId={processingId}
+              addedIds={addedIds}
+              onAdd={addToGroup}
+            />
+          ))}
         </Card>
       )}
     </div>

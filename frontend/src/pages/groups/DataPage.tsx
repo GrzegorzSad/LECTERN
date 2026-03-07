@@ -138,7 +138,7 @@ function UserCard({ name, files, deletingId, confirmId, onConfirm, onCancelConfi
       </button>
 
       {open && (
-        <div className="border-t overflow-y-auto" style={{ maxHeight: "50vh" }}>
+        <div className="overflow-y-auto" style={{ maxHeight: "50vh" }}>
           {files.map(file => (
             <div key={file.id} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/40 transition-colors group">
               <span className="text-sm shrink-0">{mimeIcon(file.mimeType)}</span>

@@ -30,12 +30,17 @@ export class LinkedAccountsController {
   }
 
   @Get('microsoft/callback')
-  microsoftCallback(@Req() req: Request) {
+  async microsoftCallback(@Req() req: Request, @Res() res: Response) {
     const code = req.query.code as string;
     if (!code) {
-      throw new Error('Missing authorization code');
+      return res.redirect('http://localhost:5173/');
     }
-    return this.service.linkMicrosoftAccount(req.session.user!.id, code);
+    try {
+      await this.service.linkMicrosoftAccount(req.session.user!.id, code);
+      return res.redirect('http://localhost:5173/');
+    } catch (err) {
+      return res.redirect('http://localhost:5173/error');
+    }
   }
 
   @Delete(':id')
