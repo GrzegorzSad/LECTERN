@@ -16,6 +16,7 @@ import { JoinPage } from "../pages/join/JoinPage";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { UploadPage } from "../pages/documents/Upload";
+import { UnauthorizedPage } from "../pages/errors/Unauthorized";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { loggedIn, userLoading } = useAuth();
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
       { path: "login", element: <LoginPage /> },
       { path: "register", element: <RegisterPage /> },
       { path: "logout", element: <LogoutPage /> },
+      { path: "/unauthorized", element: <UnauthorizedPage />},
       {
         path: "group/:id",
         element: <RequireAuth><GroupLayout /></RequireAuth>,

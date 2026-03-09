@@ -26,6 +26,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
+  if (res.status === 403) {
+    window.location.href = "/unauthorized";
+    return Promise.reject(new Error("Forbidden"));
+  }
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   const text = await res.text();
   return (text ? JSON.parse(text) : null) as T;
