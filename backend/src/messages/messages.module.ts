@@ -8,5 +8,6 @@ import { GptModule } from '../gpt/gpt.module';
   imports: [GptModule],
   controllers: [MessagesController],
   providers: [MessagesService, PrismaService],
+  exports: [MessagesService],
 })
 export class MessagesModule {}

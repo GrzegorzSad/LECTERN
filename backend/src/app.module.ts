@@ -27,10 +27,13 @@ import { MessagesModule } from './messages/messages.module';
 import { ChannelsService } from './channels/channels.service';
 import { ChannelsController } from './channels/channels.controller';
 import { ChannelsModule } from './channels/channels.module';
+import { PrivateChatsService } from './private-chats/private-chats.service';
+import { PrivateChatsModule } from './private-chats/private-chats.module';
+import { PrivateChatMessagesController } from './messages/private-chat-messages.controller';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule, OneDriveModule, GptModule, MembersModule, SourcesModule, MessagesModule, ChannelsModule],
-  controllers: [AppController, LinkedAccountsController, OneDriveController, GptController, MembersController, SourcesController, MessagesController, ChannelsController],
-  providers: [AppService, RagService, LinkedAccountsService, GptService, MembersService, SourcesService, MessagesService, ChannelsService],
+  imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule, OneDriveModule, GptModule, MembersModule, SourcesModule, MessagesModule, ChannelsModule, PrivateChatsModule],
+  controllers: [AppController, LinkedAccountsController, OneDriveController, GptController, MembersController, SourcesController, MessagesController, ChannelsController, PrivateChatMessagesController],
+  providers: [AppService, RagService, LinkedAccountsService, GptService, MembersService, SourcesService, MessagesService, ChannelsService, PrivateChatsService],
 })
 export class AppModule {}

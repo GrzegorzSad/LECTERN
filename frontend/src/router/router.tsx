@@ -15,6 +15,7 @@ import { OneDriveListPage } from "../pages/onedrive/OnedriveList";
 import { JoinPage } from "../pages/join/JoinPage";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { UploadPage } from "../pages/documents/Upload";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { loggedIn, userLoading } = useAuth();
@@ -29,75 +30,27 @@ function RequireAuth({ children }: { children: ReactNode }) {
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: (
-      <Layout>
-        <Home />
-      </Layout>
-    ),
-  },
-  {
-    path: "/login",
-    element: (
-      <Layout>
-        <LoginPage />
-      </Layout>
-    ),
-  },
-  {
-    path: "/register",
-    element: (
-      <Layout>
-        <RegisterPage />
-      </Layout>
-    ),
-  },
-  {
-    path: "/logout",
-    element: <LogoutPage />,
-  },
-  {
-    path: "/group/:id",
-    element: (
-      <RequireAuth>
-        <Layout>
-          <GroupLayout />
-        </Layout>
-      </RequireAuth>
-    ),
+    element: <Layout />,
     children: [
-      { index: true, element: <Navigate to="chat" replace /> },
-      { path: "chat", element: <ChatPage /> },
-      { path: "data", element: <DataPage /> },
-      { path: "members", element: <MembersPage /> },
-      { path: "onedrive", element: <OneDriveListPage /> },
+      { index: true, element: <Home /> },
+      { path: "login", element: <LoginPage /> },
+      { path: "register", element: <RegisterPage /> },
+      { path: "logout", element: <LogoutPage /> },
+      {
+        path: "group/:id",
+        element: <RequireAuth><GroupLayout /></RequireAuth>,
+        children: [
+          { index: true, element: <Navigate to="chat" replace /> },
+          { path: "chat", element: <ChatPage /> },
+          { path: "data", element: <DataPage /> },
+          { path: "members", element: <MembersPage /> },
+          { path: "onedrive", element: <OneDriveListPage /> },
+          { path: "upload", element: <UploadPage /> },
+        ],
+      },
+      { path: "join/:token", element: <JoinPage /> },
+      { path: "user/:id", element: <RequireAuth><UserPage /></RequireAuth> },
+      { path: "linked-accounts", element: <RequireAuth><LinkedAccountsPage /></RequireAuth> },
     ],
-  },
-  {
-    path: "/join/:token",
-    element: (
-      <Layout showGroup={false}>
-        <JoinPage />
-      </Layout>
-    ),
-  },
-  {
-    path: "/user/:id",
-    element: (
-      <RequireAuth>
-        <Layout>
-          <UserPage />
-        </Layout>
-      </RequireAuth>
-    ),
-  },
-  {
-    path: "/linked-accounts",
-    element: (
-      <RequireAuth>
-        <Layout>
-          <LinkedAccountsPage />
-        </Layout>
-      </RequireAuth>
-    ),
   },
 ]);

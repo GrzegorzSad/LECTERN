@@ -25,8 +25,8 @@ export function LoginPage() {
 
   const onSubmit = async (data: LoginForm) => {
     try {
-      const user = await authApi.login(data);
-      setUser(user as User);
+      const res = await authApi.login(data) as { user: User };
+      setUser(res.user);
       navigate("/");
     } catch (err) {
       console.error(err);

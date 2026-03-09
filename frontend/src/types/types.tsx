@@ -69,6 +69,7 @@ export interface Channel {
 export interface CreateMessageDto {
   content: string;
   parentMessageId?: number;
+  noAi?: boolean;
 }
 
 export interface Message {
@@ -85,6 +86,14 @@ export interface Message {
     id: number;
     name: string;
   };
+}
+
+// --- Private Chats ---
+export interface PrivateChat {
+  id: number;
+  name: string;
+  groupId: number;
+  userId: number;
 }
 
 // --- Documents ---

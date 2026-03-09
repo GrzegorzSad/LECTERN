@@ -16,16 +16,16 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useGroups } from "../context/GroupsContext";
 import { SidebarProvider, SidebarInset } from "./sidebar";
+import { Outlet } from "react-router-dom";
 
 interface LayoutProps {
-  children: ReactNode;
   showGroup?: boolean;
 }
 
-const LayoutInner = ({ children, showGroup = true }: LayoutProps) => {
+const LayoutInner = ({ showGroup = true }: LayoutProps) => {
   const { isDark, toggle } = useDarkMode();
   const { center, title } = useNavbarCenter();
-  const { loggedIn, user } = useAuth();
+  const { loggedIn, user, userLoading } = useAuth();
   const { groups } = useGroups();
 
   const hasSidebar = showGroup && loggedIn;
@@ -44,11 +44,11 @@ const LayoutInner = ({ children, showGroup = true }: LayoutProps) => {
               <h1 className="font-bold w-40 overflow-hidden truncate">
                 {title}
               </h1>
-              <div className="flex-1 flex justify-center">{center}</div>
+              <div className="flex-1 flex justify-center pe-20">{center}</div>
 
               <NavigationMenu>
                 <NavigationMenuList className="gap-2">
-                  {!loggedIn && (
+                  {!userLoading && !loggedIn && (
                     <>
                       <NavigationMenuItem>
                         <NavigationMenuLink
@@ -66,12 +66,12 @@ const LayoutInner = ({ children, showGroup = true }: LayoutProps) => {
                       </NavigationMenuItem>
                     </>
                   )}
-                  {loggedIn && (
+                  {!userLoading && loggedIn && user && (
                     <NavigationMenuItem>
                       <NavigationMenuLink
                         className={navigationMenuTriggerStyle()}
                       >
-                        <Link to={`/user/${user?.id}`}>{user?.name}</Link>
+                        <Link to={`/user/${user.id}`}>{user.name}</Link>
                       </NavigationMenuLink>
                     </NavigationMenuItem>
                   )}
@@ -90,7 +90,7 @@ const LayoutInner = ({ children, showGroup = true }: LayoutProps) => {
           </div>
 
           {/* Main content */}
-          <div className="flex-1 overflow-auto">{children}</div>
+          <div className="flex-1 overflow-auto"><Outlet /></div>
         </SidebarInset>
       </div>
     </SidebarProvider>

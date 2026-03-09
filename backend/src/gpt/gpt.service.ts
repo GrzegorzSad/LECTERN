@@ -12,24 +12,29 @@ export class GptService {
     apiKey: process.env.OPEN_API_KEY,
   });
 
-  constructor(private readonly prisma: PrismaService, private readonly ragService: RagService,) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ragService: RagService,
+  ) {}
 
-  async ask(query: string, groupId: number, channelId: number) {
+  async ask(
+    query: string,
+    groupId: number,
+    channelId: number | null,
+    privateChatId?: number | null,
+  ) {
     if (!query) throw new BadRequestException('No query provided');
-
     const chunks = await this.ragService.retrieveChunks(query, groupId);
-
     if (!chunks.length) {
       return {
         answer: "I couldn't find any relevant information to answer that.",
         chunks: [],
       };
     }
-
     const context = chunks.map((c) => c.text).join('\n\n---\n\n');
 
     const history = await this.prisma.message.findMany({
-      where: { channelId },
+      where: privateChatId ? { privateChatId } : { channelId: channelId! },
       orderBy: { createdAt: 'desc' },
       take: 10,
     });
@@ -51,9 +56,7 @@ export class GptService {
 
     return {
       answer: completion.choices[0].message?.content ?? 'No response generated',
-      chunks: chunks.map((c) => ({
-        preview: c.text.slice(0, 200),
-      })),
+      chunks: chunks.map((c) => ({ preview: c.text.slice(0, 200) })),
     };
   }
 }

@@ -15,6 +15,7 @@ import type {
   Member,
   Document,
   Source,
+  PrivateChat,
 } from "../types/types";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -26,7 +27,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  return (text ? JSON.parse(text) : null) as T;
 }
 
 // --- Auth ---
@@ -113,6 +115,31 @@ export const messagesApi = {
   pin: (channelId: number, messageId: number) =>
     request<Message>(`/channels/${channelId}/messages/${messageId}/pin`, {
       method: "PATCH",
+    }),
+  listPrivate: (privateChatId: number) =>
+    request<Message[]>(`/private-chats/${privateChatId}/messages`),
+  sendPrivate: (privateChatId: number, data: { content: string }) =>
+    request<{ userMessage: Message; aiMessage: Message }>(
+      `/private-chats/${privateChatId}/messages`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    ),
+};
+
+// --- Private Chats ---
+export const privateChatsApi = {
+  create: (groupId: number, name: string) =>
+    request<PrivateChat>(`/groups/${groupId}/private-chats`, {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
+  list: (groupId: number) =>
+    request<PrivateChat[]>(`/groups/${groupId}/private-chats`),
+  remove: (groupId: number, privateChatId: number) =>
+    request(`/groups/${groupId}/private-chats/${privateChatId}`, {
+      method: "DELETE",
     }),
 };
 

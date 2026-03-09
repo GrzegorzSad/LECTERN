@@ -128,8 +128,10 @@ model Channel {
 model Message {
   id             Int       @id @default(autoincrement())
   isAi           Boolean   @default(false)
-  channel        Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  channelId      Int
+  channel        Channel?  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channelId      Int?
+  privateChat    PrivateChat?   @relation(fields: [privateChatId], references: [id], onDelete: Cascade)
+  privateChatId  Int?
   user           User      @relation(fields: [userId], references: [id])
   userId         Int
   createdAt      DateTime  @default(now())
@@ -143,10 +145,12 @@ model Message {
 // Private Channels / Chats
 model PrivateChat {
   id        Int    @id @default(autoincrement())
+  name      String
   user      User   @relation(fields: [userId], references: [id])
   userId    Int
   group     Group  @relation(fields: [groupId], references: [id])
   groupId   Int
+  messages  Message[]
 }
 
 // Linked Accounts

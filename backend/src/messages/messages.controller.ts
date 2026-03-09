@@ -31,6 +31,7 @@ export class MessagesController {
       req.session.user!.id,
       dto.content,
       dto.parentMessageId,
+      dto.noAi
     );
   }
 

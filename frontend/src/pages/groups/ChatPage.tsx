@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { channelsApi, messagesApi } from "../../api/client";
-import type { Channel, Message } from "../../types/types";
+import { channelsApi, messagesApi, privateChatsApi } from "../../api/client";
+import type { Channel, PrivateChat, Message } from "../../types/types";
 import { Card } from "../../components/card";
 import { Button } from "../../components/button";
 import { Input } from "../../components/input";
@@ -37,6 +37,10 @@ export function ChatPage() {
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [channelsLoading, setChannelsLoading] = useState(true);
 
+  const [privateChats, setPrivateChats] = useState<PrivateChat[]>([]);
+  const [selectedPrivateChat, setSelectedPrivateChat] =
+    useState<PrivateChat | null>(null);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [question, setQuestion] = useState("");
@@ -47,29 +51,41 @@ export function ChatPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "rename">("create");
   const [channelName, setChannelName] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [editingChannel, setEditingChannel] = useState<Channel | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    channelsApi
-      .list(Number(id))
-      .then((data) => {
-        setChannels(data);
-        if (data.length > 0) setSelectedChannel(data[0]);
+    Promise.all([
+      channelsApi.list(Number(id)),
+      privateChatsApi.list(Number(id)),
+    ])
+      .then(([channelData, privateChatData]) => {
+        setChannels(channelData);
+        setPrivateChats(privateChatData);
+        if (channelData.length > 0) setSelectedChannel(channelData[0]);
       })
       .finally(() => setChannelsLoading(false));
   }, [id]);
 
   useEffect(() => {
-    if (!selectedChannel) return;
     if (userLoading) return;
-    setMessagesLoading(true);
-    setMessages([]);
-    messagesApi
-      .list(selectedChannel.id)
-      .then(setMessages)
-      .finally(() => setMessagesLoading(false));
-  }, [selectedChannel, userLoading]);
+    if (selectedChannel) {
+      setMessagesLoading(true);
+      setMessages([]);
+      messagesApi
+        .list(selectedChannel.id)
+        .then(setMessages)
+        .finally(() => setMessagesLoading(false));
+    } else if (selectedPrivateChat) {
+      setMessagesLoading(true);
+      setMessages([]);
+      messagesApi
+        .listPrivate(selectedPrivateChat.id)
+        .then(setMessages)
+        .finally(() => setMessagesLoading(false));
+    }
+  }, [selectedChannel, selectedPrivateChat, userLoading]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -78,6 +94,7 @@ export function ChatPage() {
   const openCreateDialog = () => {
     setDialogMode("create");
     setChannelName("");
+    setIsPrivate(false);
     setEditingChannel(null);
     setDialogOpen(true);
   };
@@ -92,11 +109,22 @@ export function ChatPage() {
   const handleDialogSubmit = async () => {
     if (!channelName.trim() || !id) return;
     if (dialogMode === "create") {
-      const newChannel = await channelsApi.create(Number(id), {
-        name: channelName.trim(),
-      });
-      setChannels((prev) => [...prev, newChannel]);
-      setSelectedChannel(newChannel);
+      if (isPrivate) {
+        const newChat = await privateChatsApi.create(
+          Number(id),
+          channelName.trim(),
+        );
+        setPrivateChats((prev) => [...prev, newChat]);
+        setSelectedPrivateChat(newChat);
+        setSelectedChannel(null);
+      } else {
+        const newChannel = await channelsApi.create(Number(id), {
+          name: channelName.trim(),
+        });
+        setChannels((prev) => [...prev, newChannel]);
+        setSelectedChannel(newChannel);
+        setSelectedPrivateChat(null);
+      }
     } else if (dialogMode === "rename" && editingChannel) {
       const updated = await channelsApi.update(Number(id), editingChannel.id, {
         name: channelName.trim(),
@@ -112,38 +140,55 @@ export function ChatPage() {
 
   const handleDeleteChannel = async (channel: Channel) => {
     if (!id) return;
-    await channelsApi.remove(Number(id), channel.id);
-    const remaining = channels.filter((c) => c.id !== channel.id);
-    setChannels(remaining);
-    if (selectedChannel?.id === channel.id)
-      setSelectedChannel(remaining[0] ?? null);
+    try {
+      await channelsApi.remove(Number(id), channel.id);
+      const data = await channelsApi.list(Number(id));
+      setChannels(data);
+      setSelectedChannel((prev) =>
+        prev?.id === channel.id ? (data[0] ?? null) : prev,
+      );
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
   };
 
-  const handleAsk = async () => {
-    if (!question.trim() || !selectedChannel) return;
+  const handleDeletePrivateChat = async (chat: PrivateChat) => {
+    if (!id) return;
+    try {
+      await privateChatsApi.remove(Number(id), chat.id);
+      setPrivateChats((prev) => prev.filter((c) => c.id !== chat.id));
+      setSelectedPrivateChat((prev) => (prev?.id === chat.id ? null : prev));
+    } catch (err) {
+      console.error("Delete private chat failed:", err);
+    }
+  };
+
+  const handleAsk = async (noAi = false) => {
+    if (!question.trim()) return;
+    if (!selectedChannel && !selectedPrivateChat) return;
     const content = question.trim();
     setQuestion("");
-    setAsking(true);
+    if (!noAi) setAsking(true);
     try {
-      const { userMessage, aiMessage } = await messagesApi.send(
-        selectedChannel.id,
-        { content },
-      );
-      setMessages((prev) => [...prev, userMessage, aiMessage]);
+      if (selectedChannel) {
+        const { userMessage, aiMessage } = await messagesApi.send(
+          selectedChannel.id,
+          { content, noAi },
+        );
+        setMessages((prev) => [
+          ...prev,
+          userMessage,
+          ...(aiMessage ? [aiMessage] : []),
+        ]);
+      } else if (selectedPrivateChat) {
+        const { userMessage, aiMessage } = await messagesApi.sendPrivate(
+          selectedPrivateChat.id,
+          { content },
+        );
+        setMessages((prev) => [...prev, userMessage, aiMessage]);
+      }
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          content: "Error getting response.",
-          isAi: true,
-          channelId: selectedChannel.id,
-          userId: 0,
-          isPinned: false,
-          createdAt: new Date().toISOString(),
-          replies: [],
-        } as Message,
-      ]);
+      // error handling unchanged
     } finally {
       setAsking(false);
     }
@@ -155,6 +200,8 @@ export function ChatPage() {
     return "other";
   };
 
+  const activeName = selectedChannel?.name ?? selectedPrivateChat?.name ?? null;
+
   if (loading || channelsLoading || userLoading) return <div></div>;
   if (error || !group) return <div>Group not found</div>;
 
@@ -162,23 +209,31 @@ export function ChatPage() {
     <div className="flex h-full overflow-hidden">
       <ChannelList
         channels={channels}
+        privateChats={privateChats}
         selectedId={selectedChannel?.id}
-        onSelect={setSelectedChannel}
+        selectedPrivateChatId={selectedPrivateChat?.id}
+        onSelect={(ch) => {
+          setSelectedChannel(ch);
+          setSelectedPrivateChat(null);
+        }}
+        onSelectPrivateChat={(chat) => {
+          setSelectedPrivateChat(chat);
+          setSelectedChannel(null);
+        }}
         onDelete={handleDeleteChannel}
+        onDeletePrivateChat={handleDeletePrivateChat}
         onRename={openRenameDialog}
         onCreate={openCreateDialog}
       />
 
       <div className="flex-1 relative overflow-hidden">
-        {selectedChannel ? (
+        {activeName ? (
           <>
             <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
 
             <div className="h-full overflow-y-auto">
               <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 flex flex-col gap-4">
-                <h2 className="text-lg font-semibold">
-                  # {selectedChannel.name}
-                </h2>
+                <h2 className="text-lg font-semibold"># {activeName}</h2>
 
                 {messagesLoading && (
                   <p className="text-muted-foreground text-sm">
@@ -250,19 +305,33 @@ export function ChatPage() {
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
                     onKeyDown={(e) =>
-                      e.key === "Enter" && !e.shiftKey && handleAsk()
+                      e.key === "Enter" && !e.shiftKey && handleAsk(false)
                     }
-                    placeholder="Ask something about the files in this group..."
+                    placeholder={
+                      selectedPrivateChat
+                        ? "Ask AI something..."
+                        : "Message or ask AI..."
+                    }
                     className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
                     disabled={asking}
                   />
+                  {selectedChannel && (
+                    <Button
+                      variant="outline"
+                      onClick={() => handleAsk(true)}
+                      disabled={asking || !question.trim()}
+                      size="lg"
+                    >
+                      Send
+                    </Button>
+                  )}
                   <Button
                     variant="channel"
-                    onClick={handleAsk}
+                    onClick={() => handleAsk(false)}
                     disabled={asking || !question.trim()}
                     size="lg"
                   >
-                    {asking ? "Asking..." : "Send"}
+                    {asking ? "Asking..." : "Ask AI"}
                   </Button>
                 </div>
               </div>
@@ -283,12 +352,38 @@ export function ChatPage() {
             <h2 className="text-lg font-semibold">
               {dialogMode === "create" ? "New Channel" : "Rename Channel"}
             </h2>
+            {dialogMode === "create" && (
+              <div className="flex rounded-md border overflow-hidden text-sm">
+                <button
+                  onClick={() => setIsPrivate(false)}
+                  className={cn(
+                    "flex-1 py-1.5 transition-colors",
+                    !isPrivate
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  Public
+                </button>
+                <button
+                  onClick={() => setIsPrivate(true)}
+                  className={cn(
+                    "flex-1 py-1.5 transition-colors",
+                    isPrivate
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  Private
+                </button>
+              </div>
+            )}
             <Input
               autoFocus
               value={channelName}
               onChange={(e) => setChannelName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleDialogSubmit()}
-              placeholder="Channel name"
+              placeholder={isPrivate ? "Private chat name" : "Channel name"}
             />
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>

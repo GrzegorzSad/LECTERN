@@ -50,7 +50,7 @@ const DATA_SOURCES: DataSource[] = [
     description: "Upload files directly from your device",
     icon: <HardDriveUpload className="h-6 w-6" />,
     href: (groupId) => `/group/${groupId}/upload`,
-    available: false,
+    available: true,
   },
 ];
 

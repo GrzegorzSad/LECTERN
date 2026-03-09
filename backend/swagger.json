@@ -597,6 +597,50 @@
         ]
       }
     },
+    "/private-chats/{privateChatId}/messages": {
+      "post": {
+        "operationId": "PrivateChatMessagesController_send",
+        "parameters": [
+          {
+            "name": "privateChatId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PrivateChatMessages"
+        ]
+      },
+      "get": {
+        "operationId": "PrivateChatMessagesController_list",
+        "parameters": [
+          {
+            "name": "privateChatId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PrivateChatMessages"
+        ]
+      }
+    },
     "/users": {
       "get": {
         "operationId": "UsersController_findAll",
@@ -996,6 +1040,73 @@
         },
         "tags": [
           "Groups"
+        ]
+      }
+    },
+    "/groups/{groupId}/private-chats": {
+      "post": {
+        "operationId": "PrivateChatsController_create",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PrivateChats"
+        ]
+      },
+      "get": {
+        "operationId": "PrivateChatsController_findAll",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PrivateChats"
+        ]
+      }
+    },
+    "/groups/{groupId}/private-chats/{privateChatId}": {
+      "delete": {
+        "operationId": "PrivateChatsController_remove",
+        "parameters": [
+          {
+            "name": "privateChatId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PrivateChats"
         ]
       }
     }
