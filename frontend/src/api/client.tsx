@@ -73,10 +73,14 @@ export const membersApi = {
   add: (data: CreateMemberDto) =>
     request<Member>("/members", { method: "POST", body: JSON.stringify(data) }),
   list: (groupId: number) => request<Member[]>(`/members/${groupId}`),
-  updateRole: (memberId: number, data: UpdateMemberRoleDto) =>
-    request<Member>(`/members/${memberId}`, {
+  getMyRole: (groupId: number) =>
+    request<{ role: "OWNER" | "ADMIN" | "MEMBER" }>(
+      `/members/me/role?groupId=${groupId}`,
+    ),
+  updateRole: (memberId: number, role: string) =>
+    request(`/members/${memberId}`, {
       method: "PATCH",
-      body: JSON.stringify(data),
+      body: JSON.stringify({ role }),
     }),
   remove: (memberId: number) =>
     request(`/members/${memberId}`, { method: "DELETE" }),
@@ -137,6 +141,11 @@ export const privateChatsApi = {
   create: (groupId: number, name: string) =>
     request<PrivateChat>(`/groups/${groupId}/private-chats`, {
       method: "POST",
+      body: JSON.stringify({ name }),
+    }),
+  rename: (groupId: number, privateChatId: number, name: string) =>
+    request<PrivateChat>(`/groups/${groupId}/private-chats/${privateChatId}`, {
+      method: "PUT",
       body: JSON.stringify({ name }),
     }),
   list: (groupId: number) =>

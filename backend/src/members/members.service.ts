@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { $Enums } from '@prisma/client';
@@ -28,6 +32,14 @@ export class MembersService {
     });
   }
 
+  async getMyRole(groupId: number, userId: number) {
+    const member = await this.prisma.member.findUnique({
+      where: { groupId_userId: { groupId, userId } },
+    });
+    if (!member) throw new NotFoundException('Not a member');
+    return { role: member.role };
+  }
+
   async listMembers(groupId: number) {
     return this.prisma.member.findMany({
       where: { groupId },
@@ -44,7 +56,7 @@ export class MembersService {
 
     return this.prisma.member.update({
       where: { id: memberId },
-      data: { role: role as $Enums.MemberRole, },
+      data: { role: role as $Enums.MemberRole },
     });
   }
 

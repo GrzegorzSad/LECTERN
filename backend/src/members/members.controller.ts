@@ -1,18 +1,11 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Patch,
-  Delete,
-  Param,
-  Body,
-} from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Param, Body, Query, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { MembersService } from './members.service';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
+import type { Request } from 'express';
 
 @ApiTags('members')
 @Controller('members')
@@ -31,11 +24,14 @@ export class MembersController {
   }
 
   @UseGuards(SessionAuthGuard)
+  @Get('me/role')
+  getMyRole(@Query('groupId') groupId: string, @Req() req: Request) {
+    return this.membersService.getMyRole(Number(groupId), req.session.user!.id);
+  }
+
+  @UseGuards(SessionAuthGuard)
   @Patch(':memberId')
-  updateRole(
-    @Param('memberId') memberId: string,
-    @Body() dto: UpdateMemberRoleDto,
-  ) {
+  updateRole(@Param('memberId') memberId: string, @Body() dto: UpdateMemberRoleDto) {
     return this.membersService.updateRole(Number(memberId), dto.role);
   }
 

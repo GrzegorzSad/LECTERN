@@ -11,7 +11,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupLabel,
-  //SidebarGroupAction,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -31,13 +30,13 @@ import {
 
 import { Card } from "./card";
 import { Button } from "./button";
-import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Plus, Pencil, Settings } from "lucide-react";
 
 type DialogMode = "create" | "edit";
 
 export function GroupList({ groups }: { groups: Group[] }) {
   const navigate = useNavigate();
-  const { addGroup, updateGroup, removeGroup } = useGroups();
+  const { addGroup, updateGroup } = useGroups();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const location = useLocation();
@@ -52,6 +51,7 @@ export function GroupList({ groups }: { groups: Group[] }) {
   const [groupName, setGroupName] = useState("");
   const [groupImg, setGroupImg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { myRoles } = useGroups();
 
   const handleClick = (group: Group) => {
     navigate(`/group/${group.id}`);
@@ -105,12 +105,6 @@ export function GroupList({ groups }: { groups: Group[] }) {
     }
   };
 
-  const handleDelete = async (group: Group) => {
-    await groupsApi.remove(group.id);
-    removeGroup(group.id);
-    if (selectedId === group.id) navigate("/");
-  };
-
   return (
     <>
       <Sidebar collapsible="icon">
@@ -124,69 +118,74 @@ export function GroupList({ groups }: { groups: Group[] }) {
         <SidebarContent>
           <SidebarGroup>
             {!isCollapsed && <SidebarGroupLabel>Groups</SidebarGroupLabel>}
-            {/* <SidebarGroupAction title="New Group" onClick={openCreateDialog}>
-              <Plus className="h-4 w-4" />
-            </SidebarGroupAction> */}
 
             <SidebarMenu>
-              {groups.map((group) => (
-                <SidebarMenuItem key={group.id}>
-                  <SidebarMenuButton
-                    isActive={selectedId === group.id}
-                    onClick={() => handleClick(group)}
-                    tooltip={group.name}
-                    className={cn(
-                      "gap-3",
-                      selectedId === group.id
-                        ? "bg-primary! text-primary-foreground! hover:bg-primary! hover:text-primary-foreground!"
-                        : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    )}
-                  >
-                    {group.img ? (
-                      <img
-                        src={group.img}
-                        alt={group.name}
-                        className="h-6 w-6 rounded object-cover shrink-0"
-                      />
-                    ) : (
-                      <div className="h-6 w-6 rounded bg-muted flex items-center justify-center text-xs font-bold shrink-0">
-                        {group.name[0]?.toUpperCase()}
-                      </div>
-                    )}
-                    <span className="truncate">{group.name}</span>
-                  </SidebarMenuButton>
+              {groups.map((group) => {
+                const isAdmin =
+                  myRoles[group.id] === "OWNER" ||
+                  myRoles[group.id] === "ADMIN";
+                return (
+                  <SidebarMenuItem key={group.id}>
+                    <SidebarMenuButton
+                      isActive={selectedId === group.id}
+                      onClick={() => handleClick(group)}
+                      tooltip={group.name}
+                      className={cn(
+                        "gap-3",
+                        selectedId === group.id
+                          ? "bg-primary! text-primary-foreground! hover:bg-primary! hover:text-primary-foreground!"
+                          : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      )}
+                    >
+                      {group.img ? (
+                        <img
+                          src={group.img}
+                          alt={group.name}
+                          className="h-6 w-6 rounded object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="h-6 w-6 rounded bg-muted flex items-center justify-center text-xs font-bold shrink-0">
+                          {group.name[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      <span className="truncate">{group.name}</span>
+                    </SidebarMenuButton>
 
-                  {!isCollapsed && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <SidebarMenuAction
-                          showOnHover
-                          className={cn(
-                            selectedId === group.id
-                              ? "text-primary-foreground! hover:bg-primary/80! hover:text-primary-foreground!"
-                              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                          )}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </SidebarMenuAction>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent side="right" align="start">
-                        <DropdownMenuItem onClick={() => openEditDialog(group)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDelete(group)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </SidebarMenuItem>
-              ))}
+                    {!isCollapsed && isAdmin && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <SidebarMenuAction
+                            showOnHover
+                            className={cn(
+                              selectedId === group.id
+                                ? "text-primary-foreground! hover:bg-primary/80! hover:text-primary-foreground!"
+                                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                            )}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </SidebarMenuAction>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="right" align="start">
+                          <DropdownMenuItem
+                            onClick={() => openEditDialog(group)}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              navigate(`/group/${group.id}/settings`)
+                            }
+                          >
+                            <Settings className="h-4 w-4 mr-2" />
+                            Settings
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroup>
         </SidebarContent>

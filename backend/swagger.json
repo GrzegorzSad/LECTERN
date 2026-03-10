@@ -213,6 +213,29 @@
         ]
       }
     },
+    "/members/me/role": {
+      "get": {
+        "operationId": "MembersController_getMyRole",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ]
+      }
+    },
     "/members/{memberId}": {
       "patch": {
         "operationId": "MembersController_updateRole",
@@ -1088,6 +1111,27 @@
       }
     },
     "/groups/{groupId}/private-chats/{privateChatId}": {
+      "put": {
+        "operationId": "PrivateChatsController_rename",
+        "parameters": [
+          {
+            "name": "privateChatId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PrivateChats"
+        ]
+      },
       "delete": {
         "operationId": "PrivateChatsController_remove",
         "parameters": [

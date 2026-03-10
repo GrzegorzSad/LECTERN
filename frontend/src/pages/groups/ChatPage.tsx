@@ -18,12 +18,7 @@ const formatTime = (iso: string) => {
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
   const isYesterday = date.toDateString() === yesterday.toDateString();
-
-  const time = date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
+  const time = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
   if (isToday) return time;
   if (isYesterday) return `Yesterday ${time}`;
   return `${date.toLocaleDateString(undefined, { day: "numeric", month: "short" })} ${time}`;
@@ -31,61 +26,33 @@ const formatTime = (iso: string) => {
 
 export function ChatPage() {
   const { id } = useParams();
-  const { group, loading, error } = useGroup();
+  const { group, loading, error, myRole } = useGroup();
   const { user: currentUser, userLoading } = useAuth();
+  const socket = useSocket();
+
+  const isAdmin = myRole === "OWNER" || myRole === "ADMIN";
 
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [channelsLoading, setChannelsLoading] = useState(true);
-
   const [privateChats, setPrivateChats] = useState<PrivateChat[]>([]);
-  const [selectedPrivateChat, setSelectedPrivateChat] =
-    useState<PrivateChat | null>(null);
-
+  const [selectedPrivateChat, setSelectedPrivateChat] = useState<PrivateChat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
-
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<"create" | "rename">("create");
+  const [dialogMode, setDialogMode] = useState<"create" | "rename" | "renamePrivate">("create");
   const [channelName, setChannelName] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [editingChannel, setEditingChannel] = useState<Channel | null>(null);
-
-  const socket = useSocket();
-
-  // Join/leave channel room when selected channel changes
-  useEffect(() => {
-    if (!selectedChannel) return;
-    socket.emit("joinChannel", selectedChannel.id);
-    return () => {
-      socket.emit("leaveChannel", selectedChannel.id);
-    };
-  }, [selectedChannel]);
-
-  // Listen for new messages
-  useEffect(() => {
-    socket.on("newMessage", (message) => {
-      setMessages((prev) => {
-        if (prev.find((m) => m.id === message.id)) return prev;
-        return [...prev, message];
-      });
-      if (message.isAi) setAsking(false);
-    });
-    return () => {
-      socket.off("newMessage");
-    };
-  }, [socket]);
+  const [editingPrivateChat, setEditingPrivateChat] = useState<PrivateChat | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([
-      channelsApi.list(Number(id)),
-      privateChatsApi.list(Number(id)),
-    ])
+    Promise.all([channelsApi.list(Number(id)), privateChatsApi.list(Number(id))])
       .then(([channelData, privateChatData]) => {
         setChannels(channelData);
         setPrivateChats(privateChatData);
@@ -99,17 +66,11 @@ export function ChatPage() {
     if (selectedChannel) {
       setMessagesLoading(true);
       setMessages([]);
-      messagesApi
-        .list(selectedChannel.id)
-        .then(setMessages)
-        .finally(() => setMessagesLoading(false));
+      messagesApi.list(selectedChannel.id).then(setMessages).finally(() => setMessagesLoading(false));
     } else if (selectedPrivateChat) {
       setMessagesLoading(true);
       setMessages([]);
-      messagesApi
-        .listPrivate(selectedPrivateChat.id)
-        .then(setMessages)
-        .finally(() => setMessagesLoading(false));
+      messagesApi.listPrivate(selectedPrivateChat.id).then(setMessages).finally(() => setMessagesLoading(false));
     }
   }, [selectedChannel, selectedPrivateChat, userLoading]);
 
@@ -117,11 +78,29 @@ export function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    if (!selectedChannel) return;
+    socket.emit("joinChannel", selectedChannel.id);
+    return () => { socket.emit("leaveChannel", selectedChannel.id); };
+  }, [selectedChannel]);
+
+  useEffect(() => {
+    socket.on("newMessage", (message: Message) => {
+      setMessages((prev) => {
+        if (prev.find((m) => m.id === message.id)) return prev;
+        return [...prev, message];
+      });
+      if (message.isAi) setAsking(false);
+    });
+    return () => { socket.off("newMessage"); };
+  }, [socket]);
+
   const openCreateDialog = () => {
     setDialogMode("create");
     setChannelName("");
-    setIsPrivate(false);
+    setIsPrivate(!isAdmin); // non-admins default to private
     setEditingChannel(null);
+    setEditingPrivateChat(null);
     setDialogOpen(true);
   };
 
@@ -129,6 +108,15 @@ export function ChatPage() {
     setDialogMode("rename");
     setChannelName(channel.name);
     setEditingChannel(channel);
+    setEditingPrivateChat(null);
+    setDialogOpen(true);
+  };
+
+  const openRenamePrivateChatDialog = (chat: PrivateChat) => {
+    setDialogMode("renamePrivate");
+    setChannelName(chat.name);
+    setEditingPrivateChat(chat);
+    setEditingChannel(null);
     setDialogOpen(true);
   };
 
@@ -136,29 +124,24 @@ export function ChatPage() {
     if (!channelName.trim() || !id) return;
     if (dialogMode === "create") {
       if (isPrivate) {
-        const newChat = await privateChatsApi.create(
-          Number(id),
-          channelName.trim(),
-        );
+        const newChat = await privateChatsApi.create(Number(id), channelName.trim());
         setPrivateChats((prev) => [...prev, newChat]);
         setSelectedPrivateChat(newChat);
         setSelectedChannel(null);
       } else {
-        const newChannel = await channelsApi.create(Number(id), {
-          name: channelName.trim(),
-        });
+        const newChannel = await channelsApi.create(Number(id), { name: channelName.trim() });
         setChannels((prev) => [...prev, newChannel]);
         setSelectedChannel(newChannel);
         setSelectedPrivateChat(null);
       }
     } else if (dialogMode === "rename" && editingChannel) {
-      const updated = await channelsApi.update(Number(id), editingChannel.id, {
-        name: channelName.trim(),
-      });
-      setChannels((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c)),
-      );
+      const updated = await channelsApi.update(Number(id), editingChannel.id, { name: channelName.trim() });
+      setChannels((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       if (selectedChannel?.id === updated.id) setSelectedChannel(updated);
+    } else if (dialogMode === "renamePrivate" && editingPrivateChat) {
+      const updated = await privateChatsApi.rename(Number(id), editingPrivateChat.id, channelName.trim());
+      setPrivateChats((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      if (selectedPrivateChat?.id === updated.id) setSelectedPrivateChat(updated);
     }
     setDialogOpen(false);
     setChannelName("");
@@ -170,9 +153,7 @@ export function ChatPage() {
       await channelsApi.remove(Number(id), channel.id);
       const data = await channelsApi.list(Number(id));
       setChannels(data);
-      setSelectedChannel((prev) =>
-        prev?.id === channel.id ? (data[0] ?? null) : prev,
-      );
+      setSelectedChannel((prev) => prev?.id === channel.id ? (data[0] ?? null) : prev);
     } catch (err) {
       console.error("Delete failed:", err);
     }
@@ -199,28 +180,16 @@ export function ChatPage() {
       if (selectedChannel) {
         await messagesApi.send(selectedChannel.id, { content, noAi });
       } else if (selectedPrivateChat) {
-        const { userMessage, aiMessage } = await messagesApi.sendPrivate(
-          selectedPrivateChat.id,
-          { content },
-        );
+        const { userMessage, aiMessage } = await messagesApi.sendPrivate(selectedPrivateChat.id, { content });
         setMessages((prev) => [...prev, userMessage, aiMessage]);
+        setAsking(false);
       }
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          content: "Error getting response.",
-          isAi: true,
-          channelId: selectedChannel?.id ?? null,
-          privateChatId: selectedPrivateChat?.id ?? null,
-          userId: 0,
-          isPinned: false,
-          createdAt: new Date().toISOString(),
-          replies: [],
-        } as Message,
-      ]);
-    } finally {
+      setMessages((prev) => [...prev, {
+        id: Date.now(), content: "Error getting response.", isAi: true,
+        channelId: selectedChannel?.id ?? null, privateChatId: selectedPrivateChat?.id ?? null,
+        userId: 0, isPinned: false, createdAt: new Date().toISOString(), replies: [],
+      } as Message]);
       setAsking(false);
     }
   };
@@ -236,6 +205,12 @@ export function ChatPage() {
   if (loading || channelsLoading || userLoading) return <div></div>;
   if (error || !group) return <div>Group not found</div>;
 
+  const dialogTitle = () => {
+    if (dialogMode === "rename") return "Rename Channel";
+    if (dialogMode === "renamePrivate") return "Rename Private Chat";
+    return isPrivate ? "New Private Chat" : "New Channel";
+  };
+
   return (
     <div className="flex h-full overflow-hidden">
       <ChannelList
@@ -243,17 +218,12 @@ export function ChatPage() {
         privateChats={privateChats}
         selectedId={selectedChannel?.id}
         selectedPrivateChatId={selectedPrivateChat?.id}
-        onSelect={(ch) => {
-          setSelectedChannel(ch);
-          setSelectedPrivateChat(null);
-        }}
-        onSelectPrivateChat={(chat) => {
-          setSelectedPrivateChat(chat);
-          setSelectedChannel(null);
-        }}
-        onDelete={handleDeleteChannel}
+        onSelect={(ch) => { setSelectedChannel(ch); setSelectedPrivateChat(null); }}
+        onSelectPrivateChat={(chat) => { setSelectedPrivateChat(chat); setSelectedChannel(null); }}
+        onDelete={isAdmin ? handleDeleteChannel : undefined}
+        onRename={isAdmin ? openRenameDialog : undefined}
         onDeletePrivateChat={handleDeletePrivateChat}
-        onRename={openRenameDialog}
+        onRenamePrivateChat={openRenamePrivateChatDialog}
         onCreate={openCreateDialog}
       />
 
@@ -261,107 +231,60 @@ export function ChatPage() {
         {activeName ? (
           <>
             <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
-
             <div className="h-full overflow-y-auto">
               <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 flex flex-col gap-4">
                 <h2 className="text-lg font-semibold"># {activeName}</h2>
-
-                {messagesLoading && (
-                  <p className="text-muted-foreground text-sm">
-                    Loading messages...
-                  </p>
-                )}
+                {messagesLoading && <p className="text-muted-foreground text-sm">Loading messages...</p>}
                 {!messagesLoading && messages.length === 0 && (
-                  <p className="text-muted-foreground text-sm">
-                    No messages yet — ask something!
-                  </p>
+                  <p className="text-muted-foreground text-sm">No messages yet — ask something!</p>
                 )}
-
                 {messages.map((msg) => {
                   const style = getMessageStyle(msg);
                   return (
-                    <div
-                      key={msg.id}
-                      className={cn(
-                        "flex flex-col max-w-[75%] gap-1",
-                        style === "own"
-                          ? "self-end items-end"
-                          : "self-start items-start",
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "rounded-lg px-4 py-2 text-sm whitespace-pre-wrap",
-                          style === "own" &&
-                            "bg-channel text-primary-foreground",
-                          style === "other" && "bg-muted text-foreground",
-                          style === "ai" &&
-                            "bg-transparent p-1 text-foreground",
-                        )}
-                      >
+                    <div key={msg.id} className={cn("flex flex-col max-w-[75%] gap-1", style === "own" ? "self-end items-end" : "self-start items-start")}>
+                      <div className={cn("rounded-lg px-4 py-2 text-sm whitespace-pre-wrap",
+                        style === "own" && "bg-channel text-primary-foreground",
+                        style === "other" && "bg-muted text-foreground",
+                        style === "ai" && "bg-transparent p-1 text-foreground",
+                      )}>
                         {msg.content}
                       </div>
-
                       <div className="flex items-center gap-1.5 px-1">
                         {style !== "own" && (
                           <span className="text-xs font-medium text-muted-foreground">
-                            {style === "ai"
-                              ? "AI"
-                              : (msg.user?.name ?? `User #${msg.userId}`)}
+                            {style === "ai" ? "AI" : (msg.user?.name ?? `User #${msg.userId}`)}
                           </span>
                         )}
-                        <span className="text-xs text-muted-foreground/60">
-                          {formatTime(msg.createdAt)}
-                        </span>
+                        <span className="text-xs text-muted-foreground/60">{formatTime(msg.createdAt)}</span>
                       </div>
                     </div>
                   );
                 })}
-
                 {asking && (
                   <div className="self-start flex flex-col gap-1 items-start">
-                    <div className="bg-muted rounded-lg px-4 py-2 text-sm text-muted-foreground animate-pulse">
-                      Thinking...
-                    </div>
+                    <div className="bg-muted rounded-lg px-4 py-2 text-sm text-muted-foreground animate-pulse">Thinking...</div>
                   </div>
                 )}
                 <div ref={bottomRef} />
               </div>
             </div>
-
             <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pointer-events-none">
               <div className="max-w-2xl mx-auto pointer-events-auto">
                 <div className="flex gap-2 items-center bg-background/80 backdrop-blur-sm border rounded-xl px-3 py-2 shadow-lg">
                   <Input
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === "Enter" && !e.shiftKey && handleAsk(false)
-                    }
-                    placeholder={
-                      selectedPrivateChat
-                        ? "Ask AI something..."
-                        : "Message or ask AI..."
-                    }
+                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleAsk(true)}
+                    placeholder={selectedPrivateChat ? "Ask AI something..." : "Message or ask AI..."}
                     className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
                     disabled={asking}
                   />
                   {selectedChannel && (
-                    <Button
-                      variant="outline"
-                      onClick={() => handleAsk(true)}
-                      disabled={asking || !question.trim()}
-                      size="lg"
-                    >
+                    <Button variant="outline" onClick={() => handleAsk(true)} disabled={asking || !question.trim()} size="lg">
                       Send
                     </Button>
                   )}
-                  <Button
-                    variant="channel"
-                    onClick={() => handleAsk(false)}
-                    disabled={asking || !question.trim()}
-                    size="lg"
-                  >
+                  <Button variant="channel" onClick={() => handleAsk(false)} disabled={asking || !question.trim()} size="lg">
                     {asking ? "Asking..." : "Ask AI"}
                   </Button>
                 </div>
@@ -370,9 +293,7 @@ export function ChatPage() {
           </>
         ) : (
           <div className="h-full flex items-center justify-center">
-            <p className="text-muted-foreground">
-              No channels yet — create one to get started.
-            </p>
+            <p className="text-muted-foreground">No channels yet — create one to get started.</p>
           </div>
         )}
       </div>
@@ -380,30 +301,18 @@ export function ChatPage() {
       {dialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <Card className="p-6 w-80 space-y-4">
-            <h2 className="text-lg font-semibold">
-              {dialogMode === "create" ? "New Channel" : "Rename Channel"}
-            </h2>
-            {dialogMode === "create" && (
+            <h2 className="text-lg font-semibold">{dialogTitle()}</h2>
+            {dialogMode === "create" && isAdmin && (
               <div className="flex rounded-md border overflow-hidden text-sm">
                 <button
                   onClick={() => setIsPrivate(false)}
-                  className={cn(
-                    "flex-1 py-1.5 transition-colors",
-                    !isPrivate
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted",
-                  )}
+                  className={cn("flex-1 py-1.5 transition-colors", !isPrivate ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
                 >
                   Public
                 </button>
                 <button
                   onClick={() => setIsPrivate(true)}
-                  className={cn(
-                    "flex-1 py-1.5 transition-colors",
-                    isPrivate
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted",
-                  )}
+                  className={cn("flex-1 py-1.5 transition-colors", isPrivate ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
                 >
                   Private
                 </button>
@@ -414,16 +323,14 @@ export function ChatPage() {
               value={channelName}
               onChange={(e) => setChannelName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleDialogSubmit()}
-              placeholder={isPrivate ? "Private chat name" : "Channel name"}
+              placeholder={
+                dialogMode === "renamePrivate" ? "Private chat name" :
+                isPrivate ? "Private chat name" : "Channel name"
+              }
             />
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleDialogSubmit}
-                disabled={!channelName.trim()}
-              >
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleDialogSubmit} disabled={!channelName.trim()}>
                 {dialogMode === "create" ? "Create" : "Rename"}
               </Button>
             </div>

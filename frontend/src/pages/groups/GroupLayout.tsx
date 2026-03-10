@@ -1,23 +1,25 @@
 import { useEffect, useState } from "react";
 import { Outlet, NavLink, useParams } from "react-router-dom";
-import { groupsApi } from "../../api/client";
+import { groupsApi, membersApi } from "../../api/client";
 import type { Group } from "../../types/types";
 import { useNavbarCenter } from "../../context/NavbarCenterContext";
 import { cn } from "../../lib/utils";
-
-// Shared group context so child pages don't need to re-fetch
 import { createContext, useContext } from "react";
+
+type MyRole = "OWNER" | "ADMIN" | "MEMBER" | null;
 
 interface GroupContextType {
   group: Group | null;
   loading: boolean;
   error: boolean;
+  myRole: MyRole;
 }
 
 const GroupContext = createContext<GroupContextType>({
   group: null,
   loading: true,
   error: false,
+  myRole: null,
 });
 
 export const useGroup = () => useContext(GroupContext);
@@ -34,6 +36,7 @@ export function GroupLayout() {
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [myRole, setMyRole] = useState<MyRole>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -42,6 +45,10 @@ export function GroupLayout() {
       .then(setGroup)
       .catch(() => setError(true))
       .finally(() => setLoading(false));
+    membersApi
+      .getMyRole(Number(id))
+      .then((data) => setMyRole(data.role))
+      .catch(() => setMyRole(null));
   }, [id]);
 
   useEffect(() => {
@@ -49,11 +56,15 @@ export function GroupLayout() {
     return () => setTitle(null);
   }, [group]);
 
-  // Inject tab buttons into the navbar center slot
   useEffect(() => {
+    const isAdmin = myRole === "OWNER" || myRole === "ADMIN";
+    const visibleTabs = tabs.filter(
+      (tab) => tab.path !== "settings" || isAdmin,
+    );
+
     setCenter(
       <div className="flex gap-1">
-        {tabs.map((tab) => (
+        {visibleTabs.map((tab) => (
           <NavLink
             key={tab.path}
             to={`/group/${id}/${tab.path}`}
@@ -71,13 +82,11 @@ export function GroupLayout() {
         ))}
       </div>,
     );
-
-    // Clean up when leaving group pages
     return () => setCenter(null);
-  }, [id, setCenter]);
+  }, [id, setCenter, myRole]);
 
   return (
-    <GroupContext.Provider value={{ group, loading, error }}>
+    <GroupContext.Provider value={{ group, loading, error, myRole }}>
       <Outlet />
     </GroupContext.Provider>
   );

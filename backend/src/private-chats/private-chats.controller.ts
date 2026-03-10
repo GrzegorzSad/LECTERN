@@ -1,4 +1,15 @@
-import { Controller, Post, Get, Delete, Param, Body, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Param,
+  Body,
+  ParseIntPipe,
+  UseGuards,
+  Req,
+  Put,
+} from '@nestjs/common';
 import { PrivateChatsService } from './private-chats.service';
 import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
 import type { Request } from 'express';
@@ -14,7 +25,11 @@ export class PrivateChatsController {
     @Body() body: { name: string },
     @Req() req: Request,
   ) {
-    return this.privateChatsService.createPrivateChat(groupId, body.name, req.session.user!.id);
+    return this.privateChatsService.createPrivateChat(
+      groupId,
+      body.name,
+      req.session.user!.id,
+    );
   }
 
   @UseGuards(SessionAuthGuard)
@@ -23,7 +38,24 @@ export class PrivateChatsController {
     @Param('groupId', ParseIntPipe) groupId: number,
     @Req() req: Request,
   ) {
-    return this.privateChatsService.getPrivateChats(groupId, req.session.user!.id);
+    return this.privateChatsService.getPrivateChats(
+      groupId,
+      req.session.user!.id,
+    );
+  }
+
+  @UseGuards(SessionAuthGuard)
+  @Put(':privateChatId')
+  rename(
+    @Param('privateChatId', ParseIntPipe) privateChatId: number,
+    @Body() body: { name: string },
+    @Req() req: Request,
+  ) {
+    return this.privateChatsService.renamePrivateChat(
+      privateChatId,
+      body.name,
+      req.session.user!.id,
+    );
   }
 
   @UseGuards(SessionAuthGuard)
@@ -32,6 +64,9 @@ export class PrivateChatsController {
     @Param('privateChatId', ParseIntPipe) privateChatId: number,
     @Req() req: Request,
   ) {
-    return this.privateChatsService.deletePrivateChat(privateChatId, req.session.user!.id);
+    return this.privateChatsService.deletePrivateChat(
+      privateChatId,
+      req.session.user!.id,
+    );
   }
 }

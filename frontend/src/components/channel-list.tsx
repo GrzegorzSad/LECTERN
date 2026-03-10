@@ -34,6 +34,7 @@ interface ChannelListProps {
   onDelete?: (channel: Channel) => void;
   onDeletePrivateChat?: (chat: PrivateChat) => void;
   onRename?: (channel: Channel) => void;
+  onRenamePrivateChat?: (chat: PrivateChat) => void;
   onCreate?: () => void;
 }
 
@@ -47,6 +48,7 @@ export function ChannelList({
   onDelete,
   onDeletePrivateChat,
   onRename,
+  onRenamePrivateChat,
   onCreate,
 }: ChannelListProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -148,7 +150,7 @@ export function ChannelList({
           {privateChats.length > 0 && (
             <>
               {!collapsed && (
-                <p className=" pt-3 pb-1 text-xs font-semibold text-muted-foreground">
+                <p className="pt-3 pb-1 text-xs font-semibold text-muted-foreground">
                   Private
                 </p>
               )}
@@ -176,7 +178,7 @@ export function ChannelList({
                     )}
                   </Tooltip>
 
-                  {!collapsed && onDeletePrivateChat && (
+                  {!collapsed && (onRenamePrivateChat || onDeletePrivateChat) && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
@@ -191,13 +193,21 @@ export function ChannelList({
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent side="right" align="start">
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => onDeletePrivateChat(chat)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
+                        {onRenamePrivateChat && (
+                          <DropdownMenuItem onClick={() => onRenamePrivateChat(chat)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Rename
+                          </DropdownMenuItem>
+                        )}
+                        {onDeletePrivateChat && (
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => onDeletePrivateChat(chat)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
@@ -219,7 +229,7 @@ export function ChannelList({
                   <Plus className="h-4 w-4" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right">New Channel</TooltipContent>
+              <TooltipContent side="right">New</TooltipContent>
             </Tooltip>
           ) : (
             <Button

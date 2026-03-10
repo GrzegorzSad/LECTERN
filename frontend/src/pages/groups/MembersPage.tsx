@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../components/dropdown-menu";
-import { MoreHorizontal, LogOut, UserX } from "lucide-react";
+import { MoreHorizontal, LogOut, UserX, ShieldPlus, ShieldMinus } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 const roleBadgeClass: Record<string, string> = {
@@ -24,7 +24,7 @@ const roleBadgeClass: Record<string, string> = {
 
 export function MembersPage() {
   const { id } = useParams();
-  const { group, loading, error } = useGroup();
+  const { group, loading, error, myRole } = useGroup();
   const { user: currentUser, userLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -36,6 +36,8 @@ export function MembersPage() {
   const [generating, setGenerating] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ memberId: number; type: "kick" | "leave" } | null>(null);
   const [actingId, setActingId] = useState<number | null>(null);
+
+  const isAdmin = myRole === "OWNER" || myRole === "ADMIN";
 
   useEffect(() => {
     if (!id) return;
@@ -75,6 +77,18 @@ export function MembersPage() {
     } finally {
       setActingId(null);
       setConfirmAction(null);
+    }
+  };
+
+  const handleToggleAdmin = async (member: Member) => {
+    const newRole = member.role === "ADMIN" ? "MEMBER" : "ADMIN";
+    try {
+      await membersApi.updateRole(member.id, newRole);
+      setMembers(prev =>
+        prev.map(m => m.id === member.id ? { ...m, role: newRole } : m)
+      );
+    } catch (err) {
+      console.error("Role update failed:", err);
     }
   };
 
@@ -120,11 +134,12 @@ export function MembersPage() {
             const isOwner = member.role === "OWNER";
             const showKick = canKick && !isCurrentUser && !isOwner;
             const showLeave = isCurrentUser && !isOwner;
-            const showMenu = showKick || showLeave;
+            const showRoleToggle = isAdmin && !isCurrentUser && !isOwner;
+            const showMenu = showKick || showLeave || showRoleToggle;
             const isConfirming = confirmAction?.memberId === member.id;
 
             return (
-              <div key={member.id} className="group flex items-center gap-3 px-4 hover:bg-muted/20 transition-colors">
+              <div key={member.id} className="group flex items-center gap-3 px-4 py-1 hover:bg-muted/20 transition-colors">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">
                     {member.user?.name ?? `User #${member.userId}`}
@@ -170,6 +185,21 @@ export function MembersPage() {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent side="left" align="start">
+                        {showRoleToggle && (
+                          <DropdownMenuItem onClick={() => handleToggleAdmin(member)}>
+                            {member.role === "ADMIN" ? (
+                              <>
+                                <ShieldMinus className="h-4 w-4 mr-2" />
+                                Remove Admin
+                              </>
+                            ) : (
+                              <>
+                                <ShieldPlus className="h-4 w-4 mr-2" />
+                                Make Admin
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                        )}
                         {showLeave && (
                           <DropdownMenuItem
                             className="text-destructive"
