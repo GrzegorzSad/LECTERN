@@ -3,9 +3,10 @@ import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GptModule } from '../gpt/gpt.module';
+import { ChatModule } from 'src/chat/chat.module';
 
 @Module({
-  imports: [GptModule],
+  imports: [GptModule, ChatModule],
   controllers: [MessagesController],
   providers: [MessagesService, PrismaService],
   exports: [MessagesService],

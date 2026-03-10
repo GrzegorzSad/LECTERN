@@ -5,12 +5,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GptService } from '../gpt/gpt.service';
+import { ChatGateway } from 'src/chat/chat.gateway';
 
 @Injectable()
 export class MessagesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gptService: GptService,
+    private readonly chatGateway: ChatGateway,
   ) {}
 
   private findMessageWithUser(id: number) {
@@ -50,6 +52,7 @@ export class MessagesService {
 
     if (noAi) {
       const userMessage = await this.findMessageWithUser(userMsg.id);
+      this.chatGateway.emitNewMessage(channelId, userMessage);
       return { userMessage, aiMessage: null, chunks: [] };
     }
 
@@ -73,6 +76,9 @@ export class MessagesService {
       this.findMessageWithUser(userMsg.id),
       this.findMessageWithUser(aiMsg.id),
     ]);
+    
+    this.chatGateway.emitNewMessage(channelId, userMessage);
+    this.chatGateway.emitNewMessage(channelId, aiMessage);
 
     return { userMessage, aiMessage, chunks: aiResponse.chunks };
   }

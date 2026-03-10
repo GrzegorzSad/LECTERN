@@ -30,9 +30,10 @@ import { ChannelsModule } from './channels/channels.module';
 import { PrivateChatsService } from './private-chats/private-chats.service';
 import { PrivateChatsModule } from './private-chats/private-chats.module';
 import { PrivateChatMessagesController } from './messages/private-chat-messages.controller';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule, OneDriveModule, GptModule, MembersModule, SourcesModule, MessagesModule, ChannelsModule, PrivateChatsModule],
+  imports: [PrismaModule, UsersModule, AuthModule, DocumentsModule, GroupsModule, LinkedAccountsModule, OneDriveModule, GptModule, MembersModule, SourcesModule, MessagesModule, ChannelsModule, PrivateChatsModule, ChatModule],
   controllers: [AppController, LinkedAccountsController, OneDriveController, GptController, MembersController, SourcesController, MessagesController, ChannelsController, PrivateChatMessagesController],
   providers: [AppService, RagService, LinkedAccountsService, GptService, MembersService, SourcesService, MessagesService, ChannelsService, PrivateChatsService],
 })

@@ -9,6 +9,7 @@ import { useGroup } from "./GroupLayout";
 import { ChannelList } from "../../components/channel-list";
 import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
+import { useSocket } from "../../hooks/useSocket";
 
 const formatTime = (iso: string) => {
   const date = new Date(iso);
@@ -53,6 +54,31 @@ export function ChatPage() {
   const [channelName, setChannelName] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [editingChannel, setEditingChannel] = useState<Channel | null>(null);
+
+  const socket = useSocket();
+
+  // Join/leave channel room when selected channel changes
+  useEffect(() => {
+    if (!selectedChannel) return;
+    socket.emit("joinChannel", selectedChannel.id);
+    return () => {
+      socket.emit("leaveChannel", selectedChannel.id);
+    };
+  }, [selectedChannel]);
+
+  // Listen for new messages
+  useEffect(() => {
+    socket.on("newMessage", (message) => {
+      setMessages((prev) => {
+        if (prev.find((m) => m.id === message.id)) return prev;
+        return [...prev, message];
+      });
+      if (message.isAi) setAsking(false);
+    });
+    return () => {
+      socket.off("newMessage");
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (!id) return;
@@ -171,15 +197,7 @@ export function ChatPage() {
     if (!noAi) setAsking(true);
     try {
       if (selectedChannel) {
-        const { userMessage, aiMessage } = await messagesApi.send(
-          selectedChannel.id,
-          { content, noAi },
-        );
-        setMessages((prev) => [
-          ...prev,
-          userMessage,
-          ...(aiMessage ? [aiMessage] : []),
-        ]);
+        await messagesApi.send(selectedChannel.id, { content, noAi });
       } else if (selectedPrivateChat) {
         const { userMessage, aiMessage } = await messagesApi.sendPrivate(
           selectedPrivateChat.id,
@@ -188,7 +206,20 @@ export function ChatPage() {
         setMessages((prev) => [...prev, userMessage, aiMessage]);
       }
     } catch {
-      // error handling unchanged
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          content: "Error getting response.",
+          isAi: true,
+          channelId: selectedChannel?.id ?? null,
+          privateChatId: selectedPrivateChat?.id ?? null,
+          userId: 0,
+          isPinned: false,
+          createdAt: new Date().toISOString(),
+          replies: [],
+        } as Message,
+      ]);
     } finally {
       setAsking(false);
     }
