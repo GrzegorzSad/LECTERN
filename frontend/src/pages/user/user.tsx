@@ -68,7 +68,7 @@ export function UserPage() {
 
       {/* Profile card */}
       <Card className="overflow-hidden">
-        <div className="flex items-center justify-between px-4 border-b">
+        <div className="flex items-center justify-between px-4">
           <div>
             <p className="text-sm font-semibold">{user.name}</p>
             <p className="text-xs text-muted-foreground">{user.email}</p>
@@ -87,7 +87,7 @@ export function UserPage() {
 
       {/* Linked accounts */}
       <Card className="overflow-hidden">
-        <div className="px-4 border-b">
+        <div className="px-4">
           <p className="text-sm font-semibold">Linked Accounts</p>
         </div>
 

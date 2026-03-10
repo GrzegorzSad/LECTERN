@@ -15,8 +15,9 @@ import {
 } from "../context/NavbarCenterContext";
 import { useAuth } from "../context/AuthContext";
 import { useGroups } from "../context/GroupsContext";
-import { SidebarProvider, SidebarInset } from "./sidebar";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "./sidebar";
 import { Outlet } from "react-router-dom";
+
 
 interface LayoutProps {
   showGroup?: boolean;
@@ -40,11 +41,12 @@ const LayoutInner = ({ showGroup = true }: LayoutProps) => {
         <SidebarInset className="flex flex-col flex-1 min-w-0 overflow-hidden">
           {/* Navbar */}
           <div className="flex items-center p-2 bg-background shrink-0">
+            {hasSidebar && <SidebarTrigger className="md:hidden pe-4"/>}
             <div className="flex grow items-center justify-between">
-              <h1 className="font-bold w-40 overflow-hidden truncate">
+              <h1 className="font-bold w-40 overflow-hidden truncate hidden md:block">
                 {title}
               </h1>
-              <div className="flex-1 flex justify-center pe-20">{center}</div>
+              <div className="flex-1 flex justify-center">{center}</div>
 
               <NavigationMenu>
                 <NavigationMenuList className="gap-2">
@@ -67,7 +69,7 @@ const LayoutInner = ({ showGroup = true }: LayoutProps) => {
                     </>
                   )}
                   {!userLoading && loggedIn && user && (
-                    <NavigationMenuItem>
+                    <NavigationMenuItem className="max-w-10 overflow-hidden md:max-w-none"> 
                       <NavigationMenuLink
                         className={navigationMenuTriggerStyle()}
                       >
