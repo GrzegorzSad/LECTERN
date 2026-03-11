@@ -20,7 +20,7 @@ export class GroupsService {
         data: {
           groupId: group.id,
           userId: creatorUserId,
-          role: 'ADMIN',
+          role: 'OWNER',
         },
       });
 

@@ -17,6 +17,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { UploadPage } from "../pages/documents/Upload";
 import { UnauthorizedPage } from "../pages/errors/Unauthorized";
+import { SettingsPage } from "../pages/groups/SettingsPage";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { loggedIn, userLoading } = useAuth();
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
           { path: "members", element: <MembersPage /> },
           { path: "onedrive", element: <OneDriveListPage /> },
           { path: "upload", element: <UploadPage /> },
+          { path: "settings", element: <SettingsPage /> },
         ],
       },
       { path: "join/:token", element: <JoinPage /> },
