@@ -31,26 +31,44 @@ export const GroupsProvider = ({ children }: { children: ReactNode }) => {
       setMyRoles({});
       return;
     }
-    groupsApi.getAll().then((data) => {
-      setGroups(data);
-      Promise.all(
-        data.map((g: Group) =>
-          membersApi.getMyRole(g.id).then((r) => ({ id: g.id, role: r.role })).catch(() => ({ id: g.id, role: "MEMBER" }))
-        )
-      ).then((roles) => {
-        const map: Record<number, string> = {};
-        roles.forEach((r) => { map[r.id] = r.role; });
-        setMyRoles(map);
-      });
-    }).catch(() => setGroups([]));
+    groupsApi
+      .getAll()
+      .then((data) => {
+        setGroups(data);
+        Promise.all(
+          data.map((g: Group) =>
+            membersApi
+              .getMyRole(g.id)
+              .then((r) => ({ id: g.id, role: r.role }))
+              .catch(() => ({ id: g.id, role: "MEMBER" })),
+          ),
+        ).then((roles) => {
+          const map: Record<number, string> = {};
+          roles.forEach((r) => {
+            map[r.id] = r.role;
+          });
+          setMyRoles(map);
+        });
+      })
+      .catch(() => setGroups([]));
   }, [loggedIn]);
 
-  const addGroup = (group: Group) => setGroups((prev) => [...prev, group]);
-  const updateGroup = (group: Group) => setGroups((prev) => prev.map((g) => g.id === group.id ? group : g));
-  const removeGroup = (id: number) => setGroups((prev) => prev.filter((g) => g.id !== id));
+  const addGroup = (group: Group) => {
+    setGroups((prev) => [...prev, group]);
+    membersApi
+      .getMyRole(group.id)
+      .then((r) => setMyRoles((prev) => ({ ...prev, [group.id]: r.role })))
+      .catch(() => setMyRoles((prev) => ({ ...prev, [group.id]: "OWNER" })));
+  };
+  const updateGroup = (group: Group) =>
+    setGroups((prev) => prev.map((g) => (g.id === group.id ? group : g)));
+  const removeGroup = (id: number) =>
+    setGroups((prev) => prev.filter((g) => g.id !== id));
 
   return (
-    <GroupsContext.Provider value={{ groups, myRoles, addGroup, updateGroup, removeGroup }}>
+    <GroupsContext.Provider
+      value={{ groups, myRoles, addGroup, updateGroup, removeGroup }}
+    >
       {children}
     </GroupsContext.Provider>
   );

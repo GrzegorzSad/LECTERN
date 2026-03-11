@@ -75,9 +75,8 @@ export function UserPage() {
           </div>
           <Button
             size="sm"
-            variant="outline"
+            variant="destructive"
             onClick={handleLogout}
-            className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut className="h-3.5 w-3.5 mr-1.5" />
             Log out
@@ -123,9 +122,8 @@ export function UserPage() {
                     ) : (
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="destructive"
                         onClick={() => setConfirmUnlinkId(linked.id)}
-                        className="shrink-0 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
                       >
                         <Unlink className="h-3.5 w-3.5 mr-1.5" />
                         Unlink
