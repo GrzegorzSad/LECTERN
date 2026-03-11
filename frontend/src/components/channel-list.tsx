@@ -233,7 +233,7 @@ export function ChannelList({
             </Tooltip>
           ) : (
             <Button
-              variant="outline"
+              variant="ghost"
               className="w-full"
               size="sm"
               onClick={onCreate}

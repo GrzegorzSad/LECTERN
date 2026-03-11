@@ -280,7 +280,7 @@ export function ChatPage() {
                     disabled={asking}
                   />
                   {selectedChannel && (
-                    <Button variant="outline" onClick={() => handleAsk(true)} disabled={asking || !question.trim()} size="lg">
+                    <Button variant="ghost" onClick={() => handleAsk(true)} disabled={asking || !question.trim()} size="lg">
                       Send
                     </Button>
                   )}
