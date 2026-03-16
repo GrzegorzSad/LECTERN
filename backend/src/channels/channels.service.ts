@@ -56,6 +56,27 @@ export class ChannelsService {
     });
   }
 
+  async updateChannelAiSettings(
+    channelId: number,
+    userId: number,
+    aiPrompt?: string,
+    aiPersonality?: string,
+  ) {
+    const channel = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+    });
+    if (!channel) throw new NotFoundException('Channel not found');
+    const member = await this.prisma.member.findUnique({
+      where: { groupId_userId: { groupId: channel.groupId, userId } },
+    });
+    if (!member || (member.role !== 'ADMIN' && member.role !== 'OWNER'))
+      throw new ForbiddenException('Only admins can update channel settings');
+    return this.prisma.channel.update({
+      where: { id: channelId },
+      data: { aiPrompt, aiPersonality },
+    });
+  }
+
   async deleteChannel(channelId: number, userId: number) {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },

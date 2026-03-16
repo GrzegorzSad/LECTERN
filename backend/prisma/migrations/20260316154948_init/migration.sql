@@ -20,6 +20,8 @@ CREATE TABLE "User" (
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "img" TEXT,
+    "aiPrompt" TEXT,
+    "aiPersonality" TEXT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -30,6 +32,8 @@ CREATE TABLE "Group" (
     "name" TEXT NOT NULL,
     "img" TEXT,
     "inviteToken" TEXT,
+    "aiPrompt" TEXT,
+    "aiPersonality" TEXT,
 
     CONSTRAINT "Group_pkey" PRIMARY KEY ("id")
 );
@@ -98,6 +102,8 @@ CREATE TABLE "Channel" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "groupId" INTEGER NOT NULL,
+    "aiPrompt" TEXT,
+    "aiPersonality" TEXT,
 
     CONSTRAINT "Channel_pkey" PRIMARY KEY ("id")
 );
@@ -106,7 +112,8 @@ CREATE TABLE "Channel" (
 CREATE TABLE "Message" (
     "id" SERIAL NOT NULL,
     "isAi" BOOLEAN NOT NULL DEFAULT false,
-    "channelId" INTEGER NOT NULL,
+    "channelId" INTEGER,
+    "privateChatId" INTEGER,
     "userId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "content" TEXT NOT NULL,
@@ -119,8 +126,11 @@ CREATE TABLE "Message" (
 -- CreateTable
 CREATE TABLE "PrivateChat" (
     "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
     "userId" INTEGER NOT NULL,
     "groupId" INTEGER NOT NULL,
+    "aiPrompt" TEXT,
+    "aiPersonality" TEXT,
 
     CONSTRAINT "PrivateChat_pkey" PRIMARY KEY ("id")
 );
@@ -197,6 +207,9 @@ ALTER TABLE "Channel" ADD CONSTRAINT "Channel_groupId_fkey" FOREIGN KEY ("groupI
 
 -- AddForeignKey
 ALTER TABLE "Message" ADD CONSTRAINT "Message_channelId_fkey" FOREIGN KEY ("channelId") REFERENCES "Channel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Message" ADD CONSTRAINT "Message_privateChatId_fkey" FOREIGN KEY ("privateChatId") REFERENCES "PrivateChat"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Message" ADD CONSTRAINT "Message_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

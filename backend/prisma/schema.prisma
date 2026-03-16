@@ -27,6 +27,8 @@ model User {
   linkedAccounts LinkedAccount[]
   messages    Message[]
   privateChats PrivateChat[]
+  aiPrompt  String?
+  aiPersonality String? 
 }
 
 // Groups
@@ -41,6 +43,8 @@ model Group {
   groupAiModels  GroupAiModel[]
   privateChats   PrivateChat[]
   inviteToken    String? @unique
+  aiPrompt  String?
+  aiPersonality String?
 }
 
 // Chunks
@@ -122,6 +126,8 @@ model Channel {
   group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
   groupId  Int
   messages Message[]
+  aiPrompt  String?
+  aiPersonality String? 
 }
 
 // Messages
@@ -151,6 +157,8 @@ model PrivateChat {
   group     Group  @relation(fields: [groupId], references: [id])
   groupId   Int
   messages  Message[]
+  aiPrompt  String?
+  aiPersonality String?
 }
 
 // Linked Accounts

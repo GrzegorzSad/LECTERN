@@ -1,6 +1,14 @@
 import {
-  Controller, Post, Get, Put, Delete,
-  Param, Body, ParseIntPipe, UseGuards, Req
+  Controller,
+  Post,
+  Get,
+  Put,
+  Delete,
+  Param,
+  Body,
+  ParseIntPipe,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ChannelsService } from './channels.service';
 import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
@@ -18,7 +26,11 @@ export class ChannelsController {
     @Body() dto: CreateChannelDto,
     @Req() req: Request,
   ) {
-    return this.channelsService.createChannel(groupId, dto.name, req.session.user!.id);
+    return this.channelsService.createChannel(
+      groupId,
+      dto.name,
+      req.session.user!.id,
+    );
   }
 
   @UseGuards(SessionAuthGuard)
@@ -37,7 +49,26 @@ export class ChannelsController {
     @Body() body: { name: string },
     @Req() req: Request,
   ) {
-    return this.channelsService.updateChannel(channelId, body.name, req.session.user!.id);
+    return this.channelsService.updateChannel(
+      channelId,
+      body.name,
+      req.session.user!.id,
+    );
+  }
+
+  @UseGuards(SessionAuthGuard)
+  @Put(':channelId/ai-settings')
+  updateAiSettings(
+    @Param('channelId', ParseIntPipe) channelId: number,
+    @Body() body: { aiPrompt?: string; aiPersonality?: string },
+    @Req() req: Request,
+  ) {
+    return this.channelsService.updateChannelAiSettings(
+      channelId,
+      req.session.user!.id,
+      body.aiPrompt,
+      body.aiPersonality,
+    );
   }
 
   @UseGuards(SessionAuthGuard)

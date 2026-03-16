@@ -24,31 +24,60 @@ export class GptService {
     privateChatId?: number | null,
   ) {
     if (!query) throw new BadRequestException('No query provided');
-    const chunks = await this.ragService.retrieveChunks(query, groupId);
-    if (!chunks.length) {
-      return {
-        answer: "I couldn't find any relevant information to answer that.",
-        chunks: [],
-      };
-    }
-    const context = chunks.map((c) => c.text).join('\n\n---\n\n');
 
-    const history = await this.prisma.message.findMany({
-      where: privateChatId ? { privateChatId } : { channelId: channelId! },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    });
+    // Fetch everything in parallel
+    const [chunks, history, group, channel] = await Promise.all([
+      this.ragService.retrieveChunks(query, groupId),
+      this.prisma.message.findMany({
+        where: privateChatId ? { privateChatId } : { channelId: channelId! },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      this.prisma.group.findUnique({
+        where: { id: groupId },
+        select: { aiPrompt: true, aiPersonality: true },
+      }),
+      channelId
+        ? this.prisma.channel.findUnique({
+            where: { id: channelId },
+            select: { aiPrompt: true, aiPersonality: true },
+          })
+        : null,
+    ]);
 
     const historyMessages = history.reverse().map((m) => ({
       role: (m.isAi ? 'assistant' : 'user') as 'assistant' | 'user',
       content: m.content,
     }));
 
+    // Prompts are additive — group prompt + channel prompt both included
+    const prompts = [group?.aiPrompt, channel?.aiPrompt]
+      .filter(Boolean)
+      .join('\n\n');
+
+    // Personality — most specific wins: channel > group
+    const personality = channel?.aiPersonality ?? group?.aiPersonality;
+
+    // Build context system messages
+    const context = chunks.length
+      ? chunks.map((c) => c.text).join('\n\n---\n\n')
+      : null;
+
+    const contextMessages = context
+      ? [
+          { role: 'system' as const, content: 'Answer using only the provided context.' },
+          { role: 'system' as const, content: `Context:\n${context}` },
+        ]
+      : [
+          { role: 'system' as const, content: 'No relevant documents were found. Let the user know you have no context to answer from.' },
+        ];
+
     const completion = await this.openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'Answer using only the provided context.' },
-        { role: 'system', content: `Context:\n${context}` },
+        ...(personality ? [{ role: 'system' as const, content: personality }] : []),
+        ...(prompts ? [{ role: 'system' as const, content: prompts }] : []),
+        ...contextMessages,
         ...historyMessages,
         { role: 'user', content: query },
       ],

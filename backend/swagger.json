@@ -620,6 +620,29 @@
         ]
       }
     },
+    "/groups/{groupId}/channels/{channelId}/ai-settings": {
+      "put": {
+        "operationId": "ChannelsController_updateAiSettings",
+        "parameters": [
+          {
+            "name": "channelId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Channels"
+        ]
+      }
+    },
     "/private-chats/{privateChatId}/messages": {
       "post": {
         "operationId": "PrivateChatMessagesController_send",
@@ -1035,6 +1058,29 @@
         ],
         "responses": {
           "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/Groups/{id}/ai-settings": {
+      "put": {
+        "operationId": "GroupsController_updateAiSettings",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },

@@ -59,6 +59,19 @@ export class GroupsController {
   }
 
   @UseGuards(SessionAuthGuard)
+  @Put(':id/ai-settings')
+  updateAiSettings(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { aiPrompt?: string; aiPersonality?: string },
+  ) {
+    return this.groupsService.updateGroupAiSettings(
+      id,
+      body.aiPrompt,
+      body.aiPersonality,
+    );
+  }
+
+  @UseGuards(SessionAuthGuard)
   @Post('join/:token')
   joinByToken(@Param('token') token: string, @Req() req: Request) {
     return this.groupsService.joinByToken(token, req.session.user!.id);

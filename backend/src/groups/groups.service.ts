@@ -52,6 +52,17 @@ export class GroupsService {
     });
   }
 
+  async updateGroupAiSettings(
+    id: number,
+    aiPrompt?: string,
+    aiPersonality?: string,
+  ) {
+    return this.prisma.group.update({
+      where: { id },
+      data: { aiPrompt, aiPersonality },
+    });
+  }
+
   async deleteGroup(id: number) {
     return this.prisma.$transaction(async (prisma) => {
       const channels = await prisma.channel.findMany({

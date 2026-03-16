@@ -62,6 +62,14 @@ export const groupsApi = {
       body: JSON.stringify(data),
     }),
   remove: (id: number) => request(`/Groups/${id}`, { method: "DELETE" }),
+  updateAiSettings: (
+    id: number,
+    data: { aiPrompt?: string; aiPersonality?: string },
+  ) =>
+    request(`/groups/${id}/ai-settings`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
   generateInvite: (id: number) =>
     request<{ token: string }>(`/Groups/${id}/invite`, { method: "POST" }),
   joinByToken: (token: string) =>
@@ -100,6 +108,15 @@ export const channelsApi = {
     data: Partial<CreateChannelDto>,
   ) =>
     request<Channel>(`/groups/${groupId}/channels/${channelId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  updateAiSettings: (
+    groupId: number,
+    channelId: number,
+    data: { aiPrompt?: string; aiPersonality?: string },
+  ) =>
+    request(`/groups/${groupId}/channels/${channelId}/ai-settings`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),

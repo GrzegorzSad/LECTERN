@@ -29,6 +29,8 @@ export interface Group {
   id: number;
   name: string;
   img?: string;
+  aiPrompt?: string | null;
+  aiPersonality?: string | null;
 }
 
 // --- Members ---
@@ -63,6 +65,8 @@ export interface Channel {
   id: number;
   name: string;
   groupId: number;
+  aiPrompt?: string | null;
+  aiPersonality?: string | null;
 }
 
 // --- Messages ---
