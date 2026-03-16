@@ -14,11 +14,17 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import type { User } from "../../types/types";
 
-const registerSchema = z.object({
-  name: z.string().min(1, "Name required"),
-  email: z.string().email("Invalid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
+const registerSchema = z
+  .object({
+    name: z.string().min(1, "Name required"),
+    email: z.string().email("Invalid email"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export function RegisterPage() {
@@ -26,12 +32,12 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const form = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", password: "" },
+    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
   });
 
   const onSubmit = async (data: RegisterForm) => {
     try {
-      const res = await authApi.register(data) as { user: User };
+      const res = (await authApi.register(data)) as { user: User };
       setUser(res.user);
       navigate("/");
     } catch (err) {
@@ -78,6 +84,19 @@ export function RegisterPage() {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel>Password</FieldLabel>
+              <Input {...field} type="password" placeholder="••••••••" />
+              {fieldState.error && (
+                <FieldError>{fieldState.error.message}</FieldError>
+              )}
+            </Field>
+          )}
+        />
+        <Controller
+          name="confirmPassword"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel>Confirm Password</FieldLabel>
               <Input {...field} type="password" placeholder="••••••••" />
               {fieldState.error && (
                 <FieldError>{fieldState.error.message}</FieldError>

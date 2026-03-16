@@ -715,6 +715,34 @@
         ]
       }
     },
+    "/users/me/name": {
+      "patch": {
+        "operationId": "UsersController_updateName",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/me/password": {
+      "patch": {
+        "operationId": "UsersController_updatePassword",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/auth/register": {
       "post": {
         "operationId": "AuthController_register",

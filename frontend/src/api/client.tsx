@@ -53,6 +53,16 @@ export const usersApi = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  updateName: (name: string) =>
+    request("/users/me/name", {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    }),
+  updatePassword: (currentPassword: string, newPassword: string) =>
+    request("/users/me/password", {
+      method: "PATCH",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
 };
 
 // --- Groups ---

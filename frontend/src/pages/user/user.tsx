@@ -12,7 +12,9 @@ import type { PrivateChat, Group } from "../../types/types";
 import { Card } from "../../components/card";
 import { Button } from "../../components/button";
 import { Input } from "../../components/input";
+import { Separator } from "../../components/separator";
 import { LogOut, Link2, Unlink } from "lucide-react";
+import type { User } from "../../types/types";
 
 interface LinkedAccount {
   id: number;
@@ -28,7 +30,6 @@ const ALL_PROVIDERS = [
     onConnect: () => linkedAccountsApi.redirectToMicrosoft(),
   },
 ];
-
 
 const PERSONALITIES = [
   { value: "", label: "Default" },
@@ -141,7 +142,7 @@ interface GroupWithChats {
 }
 
 export function UserPage() {
-  const { user, setUser } = useAuth();
+  const { user, setUser, userLoading } = useAuth();
   const navigate = useNavigate();
 
   const [accounts, setAccounts] = useState<LinkedAccount[]>([]);
@@ -156,7 +157,19 @@ export function UserPage() {
   const [savingUser, setSavingUser] = useState(false);
   const [savingChatId, setSavingChatId] = useState<number | null>(null);
 
-  const { userLoading } = useAuth();
+  // Name change
+  const [newName, setNewName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [nameSuccess, setNameSuccess] = useState(false);
+
+  // Password change
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   const loadAccounts = async () => {
     try {
@@ -173,6 +186,7 @@ export function UserPage() {
 
   useEffect(() => {
     if (!user) return;
+    setNewName(user.name ?? "");
     groupsApi
       .getAll()
       .then(async (groups: Group[]) => {
@@ -202,6 +216,49 @@ export function UserPage() {
     await authApi.logout();
     setUser(null);
     navigate("/login", { replace: true });
+  };
+
+  const handleSaveName = async () => {
+    if (!newName.trim()) return;
+    setSavingName(true);
+    setNameError(null);
+    setNameSuccess(false);
+    try {
+      const updated = (await usersApi.updateName(newName.trim())) as User;
+      setUser(updated);
+      setNameSuccess(true);
+      setTimeout(() => setNameSuccess(false), 3000);
+    } catch (err: any) {
+      setNameError(err.message);
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const handleSavePassword = async () => {
+    setPasswordError(null);
+    setPasswordSuccess(false);
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords don't match");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await usersApi.updatePassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordSuccess(true);
+      setTimeout(() => setPasswordSuccess(false), 3000);
+    } catch (err: any) {
+      setPasswordError(err.message ?? "Incorrect current password");
+    } finally {
+      setSavingPassword(false);
+    }
   };
 
   const handleSaveUserAi = async (aiPrompt: string, aiPersonality: string) => {
@@ -259,6 +316,154 @@ export function UserPage() {
           </Button>
         </div>
       </Card>
+
+      {/* Account settings */}
+      <Card className="p-4 space-y-4">
+        <p className="text-sm font-medium">Account</p>
+
+        {/* Name */}
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">
+            Display Name
+          </p>
+          <div className="flex gap-2">
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Your name"
+              className="flex-1"
+            />
+            <Button
+              size="sm"
+              onClick={handleSaveName}
+              disabled={savingName || newName.trim() === user.name}
+            >
+              {savingName ? "Saving..." : nameSuccess ? "Saved ✓" : "Save"}
+            </Button>
+          </div>
+          {nameError && <p className="text-xs text-destructive">{nameError}</p>}
+        </div>
+
+        <Separator />
+
+        {/* Password */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">
+            Change Password
+          </p>
+          <Input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder="Current password"
+          />
+          <Input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="New password"
+          />
+          <Input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Confirm new password"
+            onKeyDown={(e) => e.key === "Enter" && handleSavePassword()}
+          />
+          {passwordError && (
+            <p className="text-xs text-destructive">{passwordError}</p>
+          )}
+          {passwordSuccess && (
+            <p className="text-xs text-green-600">Password updated ✓</p>
+          )}
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              onClick={handleSavePassword}
+              disabled={
+                savingPassword ||
+                !currentPassword ||
+                !newPassword ||
+                !confirmPassword
+              }
+            >
+              {savingPassword ? "Updating..." : "Update Password"}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* User AI settings */}
+      <Card className="p-4 space-y-3">
+        <div>
+          <p className="text-sm font-medium">Your AI Settings</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Default settings for your private chats, unless overridden per chat.
+          </p>
+        </div>
+        {userLoading ? (
+          <p className="text-xs text-muted-foreground">Loading...</p>
+        ) : (
+          <AiSettingsForm
+            initialPrompt={user.aiPrompt ?? ""}
+            initialPersonality={user.aiPersonality ?? ""}
+            onSave={handleSaveUserAi}
+            saving={savingUser}
+          />
+        )}
+      </Card>
+
+      {/* Private chat AI settings grouped by group */}
+      {!chatsLoading && groupsWithChats.length > 0 && (
+        <Card className="overflow-hidden divide-y">
+          <div className="px-4 py-3">
+            <p className="text-sm font-medium">Private Chat AI Settings</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Override your default AI settings per chat.
+            </p>
+          </div>
+          {groupsWithChats.map(({ group, chats }) => (
+            <div key={group.id}>
+              <div className="px-4 py-2 bg-muted/30">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  {group.name}
+                </p>
+              </div>
+              {chats.map((chat) => (
+                <div key={chat.id} className="border-t first:border-t-0">
+                  <button
+                    onClick={() =>
+                      setExpandedChatId((prev) =>
+                        prev === chat.id ? null : chat.id,
+                      )
+                    }
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                  >
+                    <span className="text-sm font-medium">🔒 {chat.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {expandedChatId === chat.id ? "▲" : "▼"}
+                    </span>
+                  </button>
+                  {expandedChatId === chat.id && (
+                    <div className="px-4 pb-4">
+                      <AiSettingsForm
+                        initialPrompt={chat.aiPrompt ?? ""}
+                        initialPersonality={chat.aiPersonality ?? ""}
+                        onSave={(prompt, personality) =>
+                          handleSaveChatAi(group.id, chat, prompt, personality)
+                        }
+                        saving={savingChatId === chat.id}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </Card>
+      )}
+
+      <Separator />
 
       {/* Linked accounts */}
       <Card className="overflow-hidden">
@@ -331,76 +536,6 @@ export function UserPage() {
           </div>
         )}
       </Card>
-
-      {/* User AI settings */}
-      <Card className="p-4 space-y-3">
-        <div>
-          <p className="text-sm font-medium">Your AI Settings</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Default settings for your private chats, unless overridden per chat.
-          </p>
-        </div>
-        {userLoading ? (
-          <p className="text-xs text-muted-foreground">Loading...</p>
-        ) : (
-          <AiSettingsForm
-            initialPrompt={user.aiPrompt ?? ""}
-            initialPersonality={user.aiPersonality ?? ""}
-            onSave={handleSaveUserAi}
-            saving={savingUser}
-          />
-        )}
-      </Card>
-
-      {/* Private chat AI settings grouped by group */}
-      {!chatsLoading && groupsWithChats.length > 0 && (
-        <Card className="overflow-hidden divide-y">
-          <div className="px-4 py-3">
-            <p className="text-sm font-medium">Private Chat AI Settings</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Override your default AI settings per chat.
-            </p>
-          </div>
-          {groupsWithChats.map(({ group, chats }) => (
-            <div key={group.id}>
-              <div className="px-4 py-2 bg-muted/30">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  {group.name}
-                </p>
-              </div>
-              {chats.map((chat) => (
-                <div key={chat.id} className="border-t first:border-t-0">
-                  <button
-                    onClick={() =>
-                      setExpandedChatId((prev) =>
-                        prev === chat.id ? null : chat.id,
-                      )
-                    }
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors text-left"
-                  >
-                    <span className="text-sm font-medium">🔒 {chat.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {expandedChatId === chat.id ? "▲" : "▼"}
-                    </span>
-                  </button>
-                  {expandedChatId === chat.id && (
-                    <div className="px-4 pb-4">
-                      <AiSettingsForm
-                        initialPrompt={chat.aiPrompt ?? ""}
-                        initialPersonality={chat.aiPersonality ?? ""}
-                        onSave={(prompt, personality) =>
-                          handleSaveChatAi(group.id, chat, prompt, personality)
-                        }
-                        saving={savingChatId === chat.id}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
-        </Card>
-      )}
     </div>
   );
 }

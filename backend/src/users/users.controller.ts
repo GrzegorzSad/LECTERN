@@ -25,7 +25,31 @@ export class UsersController {
       body.aiPrompt,
       body.aiPersonality,
     );
-    req.session.user = updated; // keep session in sync
+    req.session.user = updated;
     return updated;
+  }
+
+  @UseGuards(SessionAuthGuard)
+  @Patch('me/name')
+  async updateName(@Body() body: { name: string }, @Req() req: Request) {
+    const updated = await this.usersService.updateName(
+      req.session.user!.id,
+      body.name,
+    );
+    req.session.user = updated;
+    return updated;
+  }
+
+  @UseGuards(SessionAuthGuard)
+  @Patch('me/password')
+  async updatePassword(
+    @Body() body: { currentPassword: string; newPassword: string },
+    @Req() req: Request,
+  ) {
+    return this.usersService.updatePassword(
+      req.session.user!.id,
+      body.currentPassword,
+      body.newPassword,
+    );
   }
 }
