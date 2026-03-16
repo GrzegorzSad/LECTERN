@@ -701,6 +701,20 @@
         ]
       }
     },
+    "/users/me/ai-settings": {
+      "patch": {
+        "operationId": "UsersController_updateAiSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/auth/register": {
       "post": {
         "operationId": "AuthController_register",
@@ -1180,6 +1194,29 @@
       },
       "delete": {
         "operationId": "PrivateChatsController_remove",
+        "parameters": [
+          {
+            "name": "privateChatId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PrivateChats"
+        ]
+      }
+    },
+    "/groups/{groupId}/private-chats/{privateChatId}/ai-settings": {
+      "patch": {
+        "operationId": "PrivateChatsController_updateAiSettings",
         "parameters": [
           {
             "name": "privateChatId",

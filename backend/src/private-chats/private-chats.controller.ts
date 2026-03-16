@@ -9,6 +9,7 @@ import {
   UseGuards,
   Req,
   Put,
+  Patch,
 } from '@nestjs/common';
 import { PrivateChatsService } from './private-chats.service';
 import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
@@ -55,6 +56,21 @@ export class PrivateChatsController {
       privateChatId,
       body.name,
       req.session.user!.id,
+    );
+  }
+
+  @UseGuards(SessionAuthGuard)
+  @Patch(':privateChatId/ai-settings')
+  updateAiSettings(
+    @Param('privateChatId', ParseIntPipe) privateChatId: number,
+    @Body() body: { aiPrompt?: string; aiPersonality?: string },
+    @Req() req: Request,
+  ) {
+    return this.privateChatsService.updateAiSettings(
+      privateChatId,
+      req.session.user!.id,
+      body.aiPrompt,
+      body.aiPersonality,
     );
   }
 

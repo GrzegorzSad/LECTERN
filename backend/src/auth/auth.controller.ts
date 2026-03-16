@@ -4,6 +4,8 @@ import { AuthService } from './auth.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import type { Request } from 'express';
 import { LoginDto } from './dto/auth-login.dto';
+import { UseGuards } from '@nestjs/common';
+import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -25,8 +27,9 @@ export class AuthController {
     return this.authService.logout(req);
   }
 
+  @UseGuards(SessionAuthGuard)
   @Get('me')
   me(@Req() req: Request) {
-    return this.authService.me(req);
+    return this.authService.me(req.session.user!.id);
   }
 }

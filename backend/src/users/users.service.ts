@@ -15,8 +15,17 @@ export class UsersService {
   }
 
   create(dto: CreateUserDto) {
-    return this.prisma.user.create({
-      data: dto,
+    return this.prisma.user.create({ data: dto });
+  }
+
+  async updateAiSettings(
+    userId: number,
+    aiPrompt?: string,
+    aiPersonality?: string,
+  ) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { aiPrompt, aiPersonality },
     });
   }
 }

@@ -17,6 +17,8 @@ export interface User {
   name: string;
   email: string;
   img?: string;
+  aiPrompt?: string | null;
+  aiPersonality?: string | null;
 }
 
 // --- Groups ---
@@ -98,6 +100,8 @@ export interface PrivateChat {
   name: string;
   groupId: number;
   userId: number;
+  aiPrompt?: string | null;
+  aiPersonality?: string | null;
 }
 
 // --- Documents ---

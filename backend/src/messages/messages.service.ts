@@ -172,6 +172,7 @@ export class MessagesService {
       privateChat.groupId,
       null,
       privateChatId,
+      userId,
     );
 
     const aiMsg = await this.prisma.message.create({

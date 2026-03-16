@@ -48,6 +48,11 @@ export const authApi = {
 // --- Users ---
 export const usersApi = {
   getAll: () => request("/users"),
+  updateAiSettings: (data: { aiPrompt?: string; aiPersonality?: string }) =>
+    request("/users/me/ai-settings", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 };
 
 // --- Groups ---
@@ -167,6 +172,15 @@ export const privateChatsApi = {
     }),
   list: (groupId: number) =>
     request<PrivateChat[]>(`/groups/${groupId}/private-chats`),
+  updateAiSettings: (
+    groupId: number,
+    privateChatId: number,
+    data: { aiPrompt?: string; aiPersonality?: string },
+  ) =>
+    request(`/groups/${groupId}/private-chats/${privateChatId}/ai-settings`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   remove: (groupId: number, privateChatId: number) =>
     request(`/groups/${groupId}/private-chats/${privateChatId}`, {
       method: "DELETE",

@@ -3,10 +3,14 @@ import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { Request } from 'express';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async register(dto: CreateUserDto, req: Request) {
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -31,15 +35,24 @@ export class AuthService {
   }
 
   logout(req: Request) {
-    return new Promise(resolve => {
-      req.session.destroy(err => {
+    return new Promise((resolve) => {
+      req.session.destroy((err) => {
         if (err) resolve({ message: 'Logout failed' });
         else resolve({ message: 'Logged out' });
       });
     });
   }
 
-  me(req: Request) {
-    return req.session.user || null;
+  async me(userId: number) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        aiPrompt: true,
+        aiPersonality: true,
+      },
+    });
   }
 }

@@ -15,7 +15,6 @@ export class PrivateChatsService {
     });
     if (!member)
       throw new ForbiddenException('You are not a member of this group');
-
     return this.prisma.privateChat.create({
       data: { name, groupId, userId },
     });
@@ -40,7 +39,6 @@ export class PrivateChatsService {
     });
     if (!member)
       throw new ForbiddenException('You are not a member of this group');
-
     return this.prisma.privateChat.findMany({
       where: { groupId, userId },
     });
@@ -53,10 +51,27 @@ export class PrivateChatsService {
     if (!chat) throw new NotFoundException('Private chat not found');
     if (chat.userId !== userId)
       throw new ForbiddenException('Not your private chat');
-
     return this.prisma.$transaction(async (prisma) => {
       await prisma.message.deleteMany({ where: { privateChatId } });
       await prisma.privateChat.delete({ where: { id: privateChatId } });
+    });
+  }
+
+  async updateAiSettings(
+    privateChatId: number,
+    userId: number,
+    aiPrompt?: string,
+    aiPersonality?: string,
+  ) {
+    const chat = await this.prisma.privateChat.findUnique({
+      where: { id: privateChatId },
+    });
+    if (!chat) throw new NotFoundException('Private chat not found');
+    if (chat.userId !== userId)
+      throw new ForbiddenException('Not your private chat');
+    return this.prisma.privateChat.update({
+      where: { id: privateChatId },
+      data: { aiPrompt, aiPersonality },
     });
   }
 }
