@@ -1,9 +1,8 @@
 import { useParams } from "react-router-dom";
 import { useCallback, useState } from "react";
 import { documentsApi } from "../../api/client";
-import { Card } from "../../components/card";
 import { Button } from "../../components/button";
-import { UploadCloud, X, CheckCircle, AlertCircle, File } from "lucide-react";
+import { UploadCloud, X, AlertCircle } from "lucide-react";
 
 interface UploadFile {
   id: string;
@@ -60,7 +59,9 @@ export function UploadPage() {
     } catch (err: any) {
       setFiles((prev) =>
         prev.map((f) =>
-          f.id === entry.id ? { ...f, status: "error", error: err.message } : f,
+          f.id === entry.id
+            ? { ...f, status: "error", error: err.message }
+            : f,
         ),
       );
     }
@@ -86,26 +87,25 @@ export function UploadPage() {
   const pendingCount = files.filter((f) => f.status === "pending").length;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
       {/* Drop zone */}
       <div
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
-        className={`border-2 border-dashed rounded-lg p-10 flex flex-col items-center gap-3 transition-colors cursor-pointer
-          ${dragging ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30"}`}
         onClick={() => document.getElementById("file-input")?.click()}
+        className={`border-2 border-dashed rounded-lg p-10 flex flex-col items-center gap-3 transition-colors cursor-pointer
+          ${dragging
+            ? "border-primary bg-primary/5"
+            : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30"
+          }`}
       >
         <UploadCloud
           className={`h-8 w-8 ${dragging ? "text-primary" : "text-muted-foreground"}`}
         />
         <div className="text-center">
-          <p className="text-sm font-medium">
-            Drop files here or click to browse
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Any file type supported
-          </p>
+          <p className="text-sm font-medium">Drop files here or click to browse</p>
+          <p className="text-xs text-muted-foreground mt-1">Any file type supported</p>
         </div>
         <Button
           size="sm"
@@ -129,20 +129,19 @@ export function UploadPage() {
       {/* File list */}
       {files.length > 0 && (
         <>
-          <Card className="overflow-hidden divide-y">
-            {files.map((entry) => (
+          <div className="overflow-hidden rounded-md border bg-background">
+            {files.map((entry, i) => (
               <div
                 key={entry.id}
-                className="flex items-center gap-2 px-4 py-2 hover:bg-muted/40 transition-colors"
+                className={`flex items-center gap-3 px-4 py-2 hover:bg-muted/20 transition-colors ${
+                  i !== files.length - 1 ? "border-b" : ""
+                }`}
               >
-                <span className="text-sm shrink-0">
-                  {fileIcon(entry.file.type)}
-                </span>
+                <span className="text-sm shrink-0">{fileIcon(entry.file.type)}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{entry.file.name}</p>
+                  <p className="text-sm font-medium truncate">{entry.file.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {entry.file.type || "unknown"} ·{" "}
-                    {formatSize(entry.file.size)}
+                    {entry.file.type || "unknown"} · {formatSize(entry.file.size)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -176,7 +175,7 @@ export function UploadPage() {
                 </div>
               </div>
             ))}
-          </Card>
+          </div>
 
           {pendingCount > 1 && (
             <div className="flex justify-end">

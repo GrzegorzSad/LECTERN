@@ -40,30 +40,42 @@ const itemMatches = (item: OneDriveItem, q: string): boolean => {
   return false;
 };
 
+// ---------------------------------------------------------------------------
+// File row
+// ---------------------------------------------------------------------------
+
 function FileRow({
   item,
   processingId,
   addedIds,
   onAdd,
+  isLast,
 }: {
   item: OneDriveItem;
   processingId: string | null;
   addedIds: Set<string>;
   onAdd: (item: OneDriveItem) => void;
+  isLast?: boolean;
 }) {
   const isAdded = addedIds.has(item.id);
   const isProcessing = processingId === item.id;
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 hover:bg-muted/40 transition-colors">
+    <div
+      className={`flex items-center gap-3 px-4 py-2 hover:bg-muted/20 transition-colors ${
+        !isLast ? "border-b" : ""
+      }`}
+    >
       <span className="text-sm shrink-0">{mimeIcon(item)}</span>
       <a
         href={item.webUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex-1 min-w-0"
+        className="flex-1 min-w-0 group/link"
       >
-        <p className="text-sm truncate">{item.name}</p>
+        <p className="text-sm font-medium truncate group-hover/link:underline">
+          {item.name}
+        </p>
         <p className="text-xs text-muted-foreground">
           {item.file?.mimeType} · {formatSize(item.size)}
         </p>
@@ -81,13 +93,18 @@ function FileRow({
   );
 }
 
-function FolderCard({
+// ---------------------------------------------------------------------------
+// Folder (recursive, sits inside the same bg-background container)
+// ---------------------------------------------------------------------------
+
+function FolderRow({
   item,
   processingId,
   addedIds,
   onAdd,
   search,
   onChildrenFetched,
+  depth,
 }: {
   item: OneDriveItem;
   processingId: string | null;
@@ -95,6 +112,7 @@ function FolderCard({
   onAdd: (item: OneDriveItem) => void;
   search: string;
   onChildrenFetched: (folderId: string, children: OneDriveItem[]) => void;
+  depth?: number;
 }) {
   const q = search.toLowerCase();
   const hasSearch = q.length > 0;
@@ -104,6 +122,8 @@ function FolderCard({
   const open =
     manualOpen !== null ? manualOpen : hasSearch ? matchesSearch : false;
   const [loadingChildren, setLoadingChildren] = useState(false);
+
+  const indent = depth ?? 0;
 
   const toggle = async () => {
     const next = !open;
@@ -124,9 +144,7 @@ function FolderCard({
       setLoadingChildren(true);
       oneDriveApi
         .listFiles(item.id)
-        .then((data) => {
-          onChildrenFetched(item.id, data as OneDriveItem[]);
-        })
+        .then((data) => onChildrenFetched(item.id, data as OneDriveItem[]))
         .finally(() => setLoadingChildren(false));
     }
   }, [hasSearch, matchesSearch]);
@@ -139,15 +157,16 @@ function FolderCard({
   if (hasSearch && !matchesSearch) return null;
 
   return (
-    <div>
+    <>
       <button
         onClick={toggle}
-        className="w-full flex items-center gap-2 px-4 py-2 hover:bg-muted/30 transition-colors"
+        className="w-full flex items-center gap-2 px-4 py-2 hover:bg-muted/20 transition-colors border-b"
+        style={{ paddingLeft: `${16 + indent * 16}px` }}
       >
         {open ? (
-          <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         ) : (
-          <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         )}
         <span className="text-sm shrink-0">📁</span>
         <span className="text-sm font-medium flex-1 text-left truncate">
@@ -159,15 +178,18 @@ function FolderCard({
       </button>
 
       {open && visibleChildren !== undefined && (
-        <div className="ml-4 border-l">
+        <>
           {visibleChildren.length === 0 ? (
-            <p className="px-4 py-2 text-xs text-muted-foreground">
+            <div
+              className="px-4 py-2 text-xs text-muted-foreground border-b"
+              style={{ paddingLeft: `${32 + indent * 16}px` }}
+            >
               {hasSearch ? "No matches in this folder" : "Empty folder"}
-            </p>
+            </div>
           ) : (
-            visibleChildren.map((child) =>
+            visibleChildren.map((child, i) =>
               child.folder ? (
-                <FolderCard
+                <FolderRow
                   key={child.id}
                   item={child}
                   processingId={processingId}
@@ -175,23 +197,33 @@ function FolderCard({
                   onAdd={onAdd}
                   search={search}
                   onChildrenFetched={onChildrenFetched}
+                  depth={indent + 1}
                 />
               ) : (
-                <FileRow
+                <div
                   key={child.id}
-                  item={child}
-                  processingId={processingId}
-                  addedIds={addedIds}
-                  onAdd={onAdd}
-                />
+                  style={{ paddingLeft: `${indent * 16}px` }}
+                >
+                  <FileRow
+                    item={child}
+                    processingId={processingId}
+                    addedIds={addedIds}
+                    onAdd={onAdd}
+                    isLast={i === visibleChildren.length - 1 && !visibleChildren.some((c) => c.folder)}
+                  />
+                </div>
               ),
             )
           )}
-        </div>
+        </>
       )}
-    </div>
+    </>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 export function OneDriveListPage() {
   const { id: groupId } = useParams<{ id: string }>();
@@ -234,10 +266,7 @@ export function OneDriveListPage() {
     }
   };
 
-  const handleChildrenFetched = (
-    folderId: string,
-    children: OneDriveItem[],
-  ) => {
+  const handleChildrenFetched = (folderId: string, children: OneDriveItem[]) => {
     setItems((prev) => updateChildren(prev, folderId, children));
   };
 
@@ -245,33 +274,30 @@ export function OneDriveListPage() {
     list: OneDriveItem[],
     folderId: string,
     children: OneDriveItem[],
-  ): OneDriveItem[] => {
-    return list.map((item) => {
+  ): OneDriveItem[] =>
+    list.map((item) => {
       if (item.id === folderId) return { ...item, children };
       if (item.children)
-        return {
-          ...item,
-          children: updateChildren(item.children, folderId, children),
-        };
+        return { ...item, children: updateChildren(item.children, folderId, children) };
       return item;
     });
-  };
 
   if (loading) return <div>Loading...</div>;
 
   if (!hasOneDrive) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-4">
-        <Card className="p-8 flex flex-col items-center gap-3 text-center">
-          <p className="text-sm font-medium">No OneDrive account linked</p>
-          <p className="text-xs text-muted-foreground">
-            Connect your Microsoft account to browse and add files from
-            OneDrive.
-          </p>
-          <Button>
-            <Link to={`/user/${user?.id}`}>Link OneDrive</Link>
-          </Button>
-        </Card>
+        <div className="overflow-hidden rounded-md border bg-background">
+          <div className="p-8 flex flex-col items-center gap-3 text-center">
+            <p className="text-sm font-medium">No OneDrive account linked</p>
+            <p className="text-xs text-muted-foreground">
+              Connect your Microsoft account to browse and add files from OneDrive.
+            </p>
+            <Button>
+              <Link to={`/user/${user?.id}`}>Link OneDrive</Link>
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -280,48 +306,50 @@ export function OneDriveListPage() {
 
   const q = search.toLowerCase();
   const filtered = q ? items.filter((item) => itemMatches(item, q)) : items;
-
   const folders = filtered.filter((i) => i.folder);
   const files = filtered.filter((i) => !i.folder);
+  const allItems = [...folders, ...files];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
       <SearchFilter
         value={search}
         onChange={setSearch}
         placeholder="Search files..."
       />
 
-      {filtered.length === 0 ? (
-        <Card className="p-8 text-center text-sm text-muted-foreground">
-          {search
-            ? `No items match "${search}"`
-            : "No files found in your OneDrive."}
-        </Card>
-      ) : (
-        <Card className="overflow-hidden divide-y">
-          {folders.map((item) => (
-            <FolderCard
-              key={item.id}
-              item={item}
-              processingId={processingId}
-              addedIds={addedIds}
-              onAdd={addToGroup}
-              search={search}
-              onChildrenFetched={handleChildrenFetched}
-            />
-          ))}
-          {files.map((item) => (
-            <FileRow
-              key={item.id}
-              item={item}
-              processingId={processingId}
-              addedIds={addedIds}
-              onAdd={addToGroup}
-            />
-          ))}
-        </Card>
-      )}
+      <div className="overflow-hidden rounded-md border bg-background">
+        {allItems.length === 0 ? (
+          <p className="p-8 text-center text-sm text-muted-foreground">
+            {search ? `No items match "${search}"` : "No files found in your OneDrive."}
+          </p>
+        ) : (
+          <>
+            {folders.map((item) => (
+              <FolderRow
+                key={item.id}
+                item={item}
+                processingId={processingId}
+                addedIds={addedIds}
+                onAdd={addToGroup}
+                search={search}
+                onChildrenFetched={handleChildrenFetched}
+                depth={0}
+              />
+            ))}
+            {files.map((item, i) => (
+              <FileRow
+                key={item.id}
+                item={item}
+                processingId={processingId}
+                addedIds={addedIds}
+                onAdd={addToGroup}
+                isLast={i === files.length - 1}
+              />
+            ))}
+          </>
+        )}
+      </div>
     </div>
   );
 }

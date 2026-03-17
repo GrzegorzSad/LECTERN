@@ -9,11 +9,9 @@ import {
 } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import type { PrivateChat, Group } from "../../types/types";
-import { Card } from "../../components/card";
 import { Button } from "../../components/button";
 import { Input } from "../../components/input";
-import { Separator } from "../../components/separator";
-import { LogOut, Link2, Unlink } from "lucide-react";
+import { LogOut, Link2, Unlink, ChevronDown, ChevronRight } from "lucide-react";
 import type { User } from "../../types/types";
 
 interface LinkedAccount {
@@ -53,6 +51,36 @@ const PERSONALITIES = [
     label: "Socratic",
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Shared section wrapper
+// ---------------------------------------------------------------------------
+
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="overflow-hidden rounded-md border bg-background">
+      <div className="px-4 py-3 border-b">
+        <p className="text-sm font-medium">{title}</p>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        )}
+      </div>
+      <div className="px-4 py-3">{children}</div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AI settings form
+// ---------------------------------------------------------------------------
 
 function AiSettingsForm({
   initialPrompt,
@@ -136,6 +164,10 @@ function AiSettingsForm({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 interface GroupWithChats {
   group: Group;
   chats: PrivateChat[];
@@ -157,13 +189,11 @@ export function UserPage() {
   const [savingUser, setSavingUser] = useState(false);
   const [savingChatId, setSavingChatId] = useState<number | null>(null);
 
-  // Name change
   const [newName, setNewName] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [nameSuccess, setNameSuccess] = useState(false);
 
-  // Password change
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -302,9 +332,9 @@ export function UserPage() {
   if (!user) return null;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
-      {/* Profile card */}
-      <Card className="overflow-hidden">
+    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
+      {/* Profile header */}
+      <div className="overflow-hidden rounded-md border bg-background">
         <div className="flex items-center justify-between px-4 py-3">
           <div>
             <p className="text-sm font-semibold">{user.name}</p>
@@ -315,15 +345,89 @@ export function UserPage() {
             Log out
           </Button>
         </div>
-      </Card>
+      </div>
 
-      {/* Account settings */}
-      <Card className="p-4 space-y-4">
-        <p className="text-sm font-medium">Account</p>
+      {/* Linked accounts */}
+      <div className="overflow-hidden rounded-md border bg-background">
+        <div className="px-4 py-3 border-b">
+          <p className="text-sm font-medium">Linked Accounts</p>
+        </div>
+        {accountsLoading ? (
+          <p className="px-4 py-3 text-sm text-muted-foreground">Loading...</p>
+        ) : (
+          ALL_PROVIDERS.map((provider, i) => {
+            const linked = accounts.find((a) => a.provider === provider.id);
+            return (
+              <div
+                key={provider.id}
+                className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors ${
+                  i !== ALL_PROVIDERS.length - 1 ? "border-b" : ""
+                }`}
+              >
+                <span className="text-lg shrink-0">{provider.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{provider.label}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {linked ? (linked.email ?? "Connected") : "Not connected"}
+                  </p>
+                </div>
+                {linked ? (
+                  confirmUnlinkId === linked.id ? (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-xs text-muted-foreground">
+                        Unlink?
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={unlinkingId === linked.id}
+                        onClick={() => handleUnlink(linked.id)}
+                      >
+                        {unlinkingId === linked.id ? "..." : "Yes"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setConfirmUnlinkId(null)}
+                      >
+                        No
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setConfirmUnlinkId(linked.id)}
+                    >
+                      <Unlink className="h-3.5 w-3.5 mr-1.5" />
+                      Unlink
+                    </Button>
+                  )
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={provider.onConnect}
+                    className="shrink-0"
+                  >
+                    <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                    Link
+                  </Button>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
 
-        {/* Name */}
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">
+      {/* Account */}
+      <div className="overflow-hidden rounded-md border bg-background">
+        <div className="px-4 py-3 border-b">
+          <p className="text-sm font-medium">Account</p>
+        </div>
+
+        {/* Display name */}
+        <div className="px-4 py-3 border-b">
+          <p className="text-xs font-medium text-muted-foreground mb-1.5">
             Display Name
           </p>
           <div className="flex gap-2">
@@ -341,66 +445,65 @@ export function UserPage() {
               {savingName ? "Saving..." : nameSuccess ? "Saved ✓" : "Save"}
             </Button>
           </div>
-          {nameError && <p className="text-xs text-destructive">{nameError}</p>}
+          {nameError && (
+            <p className="text-xs text-destructive mt-1.5">{nameError}</p>
+          )}
         </div>
-
-        <Separator />
 
         {/* Password */}
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="px-4 py-3">
+          <p className="text-xs font-medium text-muted-foreground mb-2">
             Change Password
           </p>
-          <Input
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            placeholder="Current password"
-          />
-          <Input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="New password"
-          />
-          <Input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Confirm new password"
-            onKeyDown={(e) => e.key === "Enter" && handleSavePassword()}
-          />
-          {passwordError && (
-            <p className="text-xs text-destructive">{passwordError}</p>
-          )}
-          {passwordSuccess && (
-            <p className="text-xs text-green-600">Password updated ✓</p>
-          )}
-          <div className="flex justify-end">
-            <Button
-              size="sm"
-              onClick={handleSavePassword}
-              disabled={
-                savingPassword ||
-                !currentPassword ||
-                !newPassword ||
-                !confirmPassword
-              }
-            >
-              {savingPassword ? "Updating..." : "Update Password"}
-            </Button>
+          <div className="space-y-2">
+            <Input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Current password"
+            />
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password"
+            />
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+              onKeyDown={(e) => e.key === "Enter" && handleSavePassword()}
+            />
+            {passwordError && (
+              <p className="text-xs text-destructive">{passwordError}</p>
+            )}
+            {passwordSuccess && (
+              <p className="text-xs text-green-600">Password updated ✓</p>
+            )}
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                onClick={handleSavePassword}
+                disabled={
+                  savingPassword ||
+                  !currentPassword ||
+                  !newPassword ||
+                  !confirmPassword
+                }
+              >
+                {savingPassword ? "Updating..." : "Update Password"}
+              </Button>
+            </div>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* User AI settings */}
-      <Card className="p-4 space-y-3">
-        <div>
-          <p className="text-sm font-medium">Your AI Settings</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Default settings for your private chats, unless overridden per chat.
-          </p>
-        </div>
+      <Section
+        title="Your AI Settings"
+        description="Default settings for your private chats, unless overridden per chat."
+      >
         {userLoading ? (
           <p className="text-xs text-muted-foreground">Loading...</p>
         ) : (
@@ -411,12 +514,12 @@ export function UserPage() {
             saving={savingUser}
           />
         )}
-      </Card>
+      </Section>
 
-      {/* Private chat AI settings grouped by group */}
+      {/* Private chat AI settings */}
       {!chatsLoading && groupsWithChats.length > 0 && (
-        <Card className="overflow-hidden divide-y">
-          <div className="px-4 py-3">
+        <div className="overflow-hidden rounded-md border bg-background">
+          <div className="px-4 py-3 border-b">
             <p className="text-sm font-medium">Private Chat AI Settings</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Override your default AI settings per chat.
@@ -424,118 +527,56 @@ export function UserPage() {
           </div>
           {groupsWithChats.map(({ group, chats }) => (
             <div key={group.id}>
-              <div className="px-4 py-2 bg-muted/30">
+              <div className="px-4 py-2 border-b bg-muted/20">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   {group.name}
                 </p>
               </div>
-              {chats.map((chat) => (
-                <div key={chat.id} className="border-t first:border-t-0">
-                  <button
-                    onClick={() =>
-                      setExpandedChatId((prev) =>
-                        prev === chat.id ? null : chat.id,
-                      )
-                    }
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors text-left"
-                  >
-                    <span className="text-sm font-medium">🔒 {chat.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {expandedChatId === chat.id ? "▲" : "▼"}
-                    </span>
-                  </button>
-                  {expandedChatId === chat.id && (
-                    <div className="px-4 pb-4">
-                      <AiSettingsForm
-                        initialPrompt={chat.aiPrompt ?? ""}
-                        initialPersonality={chat.aiPersonality ?? ""}
-                        onSave={(prompt, personality) =>
-                          handleSaveChatAi(group.id, chat, prompt, personality)
-                        }
-                        saving={savingChatId === chat.id}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
+              {chats.map((chat) => {
+                const isExpanded = expandedChatId === chat.id;
+                return (
+                  <div key={chat.id} className="border-b last:border-b-0">
+                    <button
+                      onClick={() =>
+                        setExpandedChatId((prev) =>
+                          prev === chat.id ? null : chat.id,
+                        )
+                      }
+                      className="w-full flex items-center gap-2 px-4 py-3 hover:bg-muted/20 transition-colors text-left"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      )}
+                      <span className="text-sm font-medium">
+                        🔒 {chat.name}
+                      </span>
+                    </button>
+                    {isExpanded && (
+                      <div className="px-4 pb-4">
+                        <AiSettingsForm
+                          initialPrompt={chat.aiPrompt ?? ""}
+                          initialPersonality={chat.aiPersonality ?? ""}
+                          onSave={(prompt, personality) =>
+                            handleSaveChatAi(
+                              group.id,
+                              chat,
+                              prompt,
+                              personality,
+                            )
+                          }
+                          saving={savingChatId === chat.id}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
-        </Card>
-      )}
-
-      <Separator />
-
-      {/* Linked accounts */}
-      <Card className="overflow-hidden">
-        <div className="px-4 py-3">
-          <p className="text-sm font-semibold">Linked Accounts</p>
         </div>
-        {accountsLoading ? (
-          <p className="px-4 py-3 text-sm text-muted-foreground">Loading...</p>
-        ) : (
-          <div className="divide-y">
-            {ALL_PROVIDERS.map((provider) => {
-              const linked = accounts.find((a) => a.provider === provider.id);
-              return (
-                <div
-                  key={provider.id}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors"
-                >
-                  <span className="text-lg shrink-0">{provider.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{provider.label}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {linked ? (linked.email ?? "Connected") : "Not connected"}
-                    </p>
-                  </div>
-                  {linked ? (
-                    confirmUnlinkId === linked.id ? (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-xs text-muted-foreground">
-                          Unlink?
-                        </span>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          disabled={unlinkingId === linked.id}
-                          onClick={() => handleUnlink(linked.id)}
-                        >
-                          {unlinkingId === linked.id ? "..." : "Yes"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setConfirmUnlinkId(null)}
-                        >
-                          No
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => setConfirmUnlinkId(linked.id)}
-                      >
-                        <Unlink className="h-3.5 w-3.5 mr-1.5" />
-                        Unlink
-                      </Button>
-                    )
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={provider.onConnect}
-                      className="shrink-0"
-                    >
-                      <Link2 className="h-3.5 w-3.5 mr-1.5" />
-                      Link
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Card>
+      )}
     </div>
   );
 }

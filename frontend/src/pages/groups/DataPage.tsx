@@ -1,12 +1,40 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import {
+  type ColumnDef,
+  type SortingState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import { documentsApi, membersApi } from "../../api/client";
 import type { Document, Member } from "../../types/types";
 import { Card } from "../../components/card";
 import { Button } from "../../components/button";
 import { SearchFilter } from "../../components/search-filter";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/table";
 import { useGroup } from "./GroupLayout";
-import { ChevronDown, ChevronRight, Cloud, HardDriveUpload, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Cloud,
+  HardDriveUpload,
+  X,
+} from "lucide-react";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 const formatSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -15,7 +43,11 @@ const formatSize = (bytes: number) => {
 };
 
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  new Date(iso).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 
 const mimeIcon = (mime: string) => {
   if (mime.includes("pdf")) return "📄";
@@ -25,6 +57,45 @@ const mimeIcon = (mime: string) => {
   if (mime.includes("sheet") || mime.includes("excel")) return "📊";
   return "📎";
 };
+
+// Augmented row type that carries the resolved uploader name
+type FileRow = Document & { uploaderName: string };
+
+// ---------------------------------------------------------------------------
+// Sortable column header
+// ---------------------------------------------------------------------------
+
+function SortHeader({
+  label,
+  column,
+}: {
+  label: string;
+  column: {
+    getIsSorted: () => false | "asc" | "desc";
+    toggleSorting: (asc: boolean) => void;
+  };
+}) {
+  const sorted = column.getIsSorted();
+  return (
+    <button
+      className="flex items-center gap-1 text-xs font-medium hover:text-foreground transition-colors"
+      onClick={() => column.toggleSorting(sorted === "asc")}
+    >
+      {label}
+      {sorted === "asc" ? (
+        <ArrowUp className="h-3 w-3" />
+      ) : sorted === "desc" ? (
+        <ArrowDown className="h-3 w-3" />
+      ) : (
+        <ArrowUpDown className="h-3 w-3 opacity-40" />
+      )}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Add Data dialog
+// ---------------------------------------------------------------------------
 
 interface DataSource {
   id: string;
@@ -54,7 +125,13 @@ const DATA_SOURCES: DataSource[] = [
   },
 ];
 
-function AddDataDialog({ groupId, onClose }: { groupId: number; onClose: () => void }) {
+function AddDataDialog({
+  groupId,
+  onClose,
+}: {
+  groupId: number;
+  onClose: () => void;
+}) {
   const navigate = useNavigate();
 
   const handleSelect = (source: DataSource) => {
@@ -64,12 +141,17 @@ function AddDataDialog({ groupId, onClose }: { groupId: number; onClose: () => v
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
       <Card className="w-96 p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-semibold">Add Data</h2>
-            <p className="text-xs text-muted-foreground">Choose a source to import files from</p>
+            <p className="text-xs text-muted-foreground">
+              Choose a source to import files from
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -87,16 +169,19 @@ function AddDataDialog({ groupId, onClose }: { groupId: number; onClose: () => v
               disabled={!source.available}
               className={`
                 relative flex flex-col items-center gap-3 p-4 rounded-lg border text-center transition-all
-                ${source.available
-                  ? "hover:border-primary hover:bg-primary/5 cursor-pointer"
-                  : "opacity-40 cursor-not-allowed"
+                ${
+                  source.available
+                    ? "hover:border-primary hover:bg-primary/5 cursor-pointer"
+                    : "opacity-40 cursor-not-allowed"
                 }
               `}
             >
               <div className="text-muted-foreground">{source.icon}</div>
               <div>
                 <p className="text-sm font-medium">{source.label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{source.description}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {source.description}
+                </p>
               </div>
               {!source.available && (
                 <span className="absolute top-2 right-2 text-[10px] font-medium bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
@@ -111,89 +196,35 @@ function AddDataDialog({ groupId, onClose }: { groupId: number; onClose: () => v
   );
 }
 
-function UserCard({ name, files, deletingId, confirmId, onConfirm, onCancelConfirm, onDelete }: {
-  name: string;
-  files: Document[];
-  deletingId: number | null;
-  confirmId: number | null;
-  onConfirm: (id: number) => void;
-  onCancelConfirm: () => void;
-  onDelete: (file: Document) => void;
-}) {
-  const [open, setOpen] = useState(true);
-
-  return (
-    <Card className="overflow-hidden">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-2 px-4 hover:bg-muted/20 transition-colors"
-      >
-        {open
-          ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-          : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
-        <div className="flex-1 text-left min-w-0">
-          <p className="text-sm font-semibold">{name}</p>
-          <p className="text-xs text-muted-foreground">{files.length} file{files.length !== 1 ? "s" : ""}</p>
-        </div>
-      </button>
-
-      {open && (
-        <div className="overflow-y-auto" style={{ maxHeight: "50vh" }}>
-          {files.map(file => (
-            <div key={file.id} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/40 transition-colors group">
-              <span className="text-sm shrink-0">{mimeIcon(file.mimeType)}</span>
-              <a href={file.path} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0">
-                <p className="text-sm truncate">{file.name}</p>
-                <p className="text-xs text-muted-foreground">{formatSize(file.size)} · {formatDate(file.createdAt)}</p>
-              </a>
-              {confirmId === file.id ? (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-xs text-muted-foreground">Delete?</span>
-                  <Button size="sm" variant="destructive" disabled={deletingId === file.id} onClick={() => onDelete(file)}>
-                    {deletingId === file.id ? "..." : "Yes"}
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={onCancelConfirm}>No</Button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => onConfirm(file.id)}
-                  className="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1 rounded"
-                >
-                  🗑️
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
-  );
-}
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 export function DataPage() {
   const { id } = useParams();
   const { group, loading, error } = useGroup();
+
   const [files, setFiles] = useState<Document[]>([]);
   const [filesLoading, setFilesLoading] = useState(true);
   const [userNames, setUserNames] = useState<Record<number, string>>({});
-  const [search, setSearch] = useState("");
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([
-      documentsApi.get(Number(id)),
-      membersApi.list(Number(id)),
-    ]).then(([docs, members]) => {
-      setFiles(docs as Document[]);
-      const nameMap: Record<number, string> = {};
-      for (const m of members as Member[]) {
-        if (m.user) nameMap[m.userId] = m.user.name;
-      }
-      setUserNames(nameMap);
-    }).finally(() => setFilesLoading(false));
+    Promise.all([documentsApi.get(Number(id)), membersApi.list(Number(id))])
+      .then(([docs, members]) => {
+        setFiles(docs as Document[]);
+        const nameMap: Record<number, string> = {};
+        for (const m of members as Member[]) {
+          if (m.user) nameMap[m.userId] = m.user.name;
+        }
+        setUserNames(nameMap);
+      })
+      .finally(() => setFilesLoading(false));
   }, [id]);
 
   const handleDelete = async (file: Document) => {
@@ -207,52 +238,209 @@ export function DataPage() {
     }
   };
 
+  // Augment rows with resolved uploader name
+  const rows = useMemo<FileRow[]>(
+    () =>
+      files.map((f) => ({
+        ...f,
+        uploaderName: userNames[f.userId] ?? `User #${f.userId}`,
+      })),
+    [files, userNames],
+  );
+
+  const columns = useMemo<ColumnDef<FileRow>[]>(
+    () => [
+      {
+        id: "name",
+        accessorKey: "name",
+        header: ({ column }) => <SortHeader label="Name" column={column} />,
+        cell: ({ row }) => (
+          <a
+            href={row.original.path}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 min-w-0 group/link"
+          >
+            <span className="text-sm shrink-0">
+              {mimeIcon(row.original.mimeType)}
+            </span>
+            <span className="text-sm font-medium truncate group-hover/link:underline">
+              {row.original.name}
+            </span>
+          </a>
+        ),
+      },
+      {
+        id: "uploaderName",
+        accessorKey: "uploaderName",
+        header: ({ column }) => (
+          <SortHeader label="Added by" column={column} />
+        ),
+        cell: ({ getValue }) => (
+          <span className="text-sm text-muted-foreground">
+            {getValue() as string}
+          </span>
+        ),
+      },
+      {
+        id: "size",
+        accessorKey: "size",
+        header: ({ column }) => <SortHeader label="Size" column={column} />,
+        cell: ({ getValue }) => (
+          <span className="text-sm text-muted-foreground">
+            {formatSize(getValue() as number)}
+          </span>
+        ),
+      },
+      {
+        id: "createdAt",
+        accessorKey: "createdAt",
+        header: ({ column }) => <SortHeader label="Date" column={column} />,
+        cell: ({ getValue }) => (
+          <span className="text-sm text-muted-foreground">
+            {formatDate(getValue() as string)}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        header: "",
+        enableSorting: false,
+        cell: ({ row }) => {
+          const file = row.original;
+          const isConfirming = confirmId === file.id;
+
+          if (isConfirming) {
+            return (
+              <div className="flex items-center gap-1.5 justify-end">
+                <span className="text-xs text-muted-foreground">Delete?</span>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={deletingId === file.id}
+                  onClick={() => handleDelete(file)}
+                >
+                  {deletingId === file.id ? "..." : "Yes"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setConfirmId(null)}
+                >
+                  No
+                </Button>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex justify-end">
+              <button
+                onClick={() => setConfirmId(file.id)}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1 rounded"
+              >
+                🗑️
+              </button>
+            </div>
+          );
+        },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [confirmId, deletingId],
+  );
+
+  const table = useReactTable({
+    data: rows,
+    columns,
+    state: { globalFilter, sorting },
+    onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: setSorting,
+    globalFilterFn: (row, _columnId, filterValue) => {
+      const search = filterValue.toLowerCase();
+      return (
+        row.original.name.toLowerCase().includes(search) ||
+        row.original.uploaderName.toLowerCase().includes(search)
+      );
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
   if (loading || filesLoading) return <div>Loading...</div>;
   if (error || !group) return <div>Group not found</div>;
 
-  const byUser: Record<string, Document[]> = {};
-  for (const file of files) {
-    const name = userNames[file.userId] ?? `User #${file.userId}`;
-    if (!byUser[name]) byUser[name] = [];
-    byUser[name].push(file);
-  }
-
-  const filtered = Object.entries(byUser).filter(([name]) =>
-    name.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
+      {/* Toolbar */}
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <SearchFilter value={search} onChange={setSearch} placeholder="Search users..." />
+          <SearchFilter
+            value={globalFilter}
+            onChange={setGlobalFilter}
+            placeholder="Search files or users..."
+          />
         </div>
-        <Button size="lg" onClick={() => setAddDialogOpen(true)}>+ Add Data</Button>
+        <Button size="lg" onClick={() => setAddDialogOpen(true)}>
+          + Add Data
+        </Button>
       </div>
 
-      {files.length === 0 ? (
-        <Card className="p-8 text-center text-sm text-muted-foreground">
-          No files yet — add files to get started.
-        </Card>
-      ) : filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">No users match "{search}"</p>
-      ) : (
-        filtered.map(([name, userFiles]) => (
-          <UserCard
-            key={name}
-            name={name}
-            files={userFiles}
-            deletingId={deletingId}
-            confirmId={confirmId}
-            onConfirm={setConfirmId}
-            onCancelConfirm={() => setConfirmId(null)}
-            onDelete={handleDelete}
-          />
-        ))
-      )}
+      {/* Table */}
+      <div className="overflow-hidden rounded-md border bg-background">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} className="group">
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-20 text-center text-sm text-muted-foreground"
+                >
+                  {files.length === 0
+                    ? "No files yet — add files to get started."
+                    : `No files match "${globalFilter}"`}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {addDialogOpen && (
-        <AddDataDialog groupId={group.id} onClose={() => setAddDialogOpen(false)} />
+        <AddDataDialog
+          groupId={group.id}
+          onClose={() => setAddDialogOpen(false)}
+        />
       )}
     </div>
   );
