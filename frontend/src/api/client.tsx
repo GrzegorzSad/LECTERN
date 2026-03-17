@@ -7,6 +7,7 @@ import type {
   CreateGroupDto,
   CreateMemberDto,
   UpdateMemberRoleDto,
+  ChunkSource,
   CreateChannelDto,
   CreateMessageDto,
   Group,
@@ -142,10 +143,14 @@ export const channelsApi = {
 // --- Messages ---
 export const messagesApi = {
   send: (channelId: number, data: CreateMessageDto) =>
-    request<{ userMessage: Message; aiMessage: Message }>(
-      `/channels/${channelId}/messages`,
-      { method: "POST", body: JSON.stringify(data) },
-    ),
+    request<{
+      userMessage: Message;
+      aiMessage: Message;
+      sources: ChunkSource[];
+    }>(`/channels/${channelId}/messages`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   list: (channelId: number) =>
     request<Message[]>(`/channels/${channelId}/messages`),
   remove: (channelId: number, messageId: number) =>
@@ -159,13 +164,14 @@ export const messagesApi = {
   listPrivate: (privateChatId: number) =>
     request<Message[]>(`/private-chats/${privateChatId}/messages`),
   sendPrivate: (privateChatId: number, data: { content: string }) =>
-    request<{ userMessage: Message; aiMessage: Message }>(
-      `/private-chats/${privateChatId}/messages`,
-      {
-        method: "POST",
-        body: JSON.stringify(data),
-      },
-    ),
+    request<{
+      userMessage: Message;
+      aiMessage: Message;
+      sources: ChunkSource[];
+    }>(`/private-chats/${privateChatId}/messages`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
 
 // --- Private Chats ---
@@ -175,7 +181,12 @@ export const privateChatsApi = {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
-  rename: (groupId: number, privateChatId: number, name: string, color?: string) =>
+  rename: (
+    groupId: number,
+    privateChatId: number,
+    name: string,
+    color?: string,
+  ) =>
     request<PrivateChat>(`/groups/${groupId}/private-chats/${privateChatId}`, {
       method: "PUT",
       body: JSON.stringify({ name, color }),

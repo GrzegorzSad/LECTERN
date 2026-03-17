@@ -43,16 +43,17 @@ export class RagService {
     throw new BadRequestException(`Unsupported file type: ${mime}`);
   }
 
-  async retrieveChunks(
-    query: string,
-    groupId: number,
-  ): Promise<{ text: string }[]> {
+  async retrieveChunks(query: string, groupId: number) {
     const queryVector = await this.embeddings.embedQuery(query);
     const vectorLiteral = queryVector.join(',');
-
-    const res = await this.pool.query<{ text: string }>(
+    const res = await this.pool.query<{
+      id: number;
+      text: string;
+      fileName: string;
+    }>(
       `
-    SELECT c.text, c.vector <=> '[${vectorLiteral}]'::vector AS distance
+    SELECT c.id, c.text, c."fileName",
+           c.vector <=> '[${vectorLiteral}]'::vector AS distance
     FROM "Chunk" c
     JOIN "File" f ON f.id = c."fileId"
     WHERE f."groupId" = $1
@@ -61,7 +62,6 @@ export class RagService {
     `,
       [groupId],
     );
-
     return res.rows;
   }
 }

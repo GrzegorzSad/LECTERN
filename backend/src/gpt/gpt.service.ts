@@ -1,16 +1,29 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import OpenAI from 'openai';
 import { PrismaService } from '../prisma/prisma.service';
-import { OpenAIEmbeddings } from '@langchain/openai';
+import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
+import {
+  HumanMessage,
+  SystemMessage,
+  AIMessage,
+} from '@langchain/core/messages';
 import { RagService } from 'src/rag/rag.service';
+import { z } from 'zod';
+
+const AnswerSchema = z.object({
+  answer: z.string().describe('The answer to the user query'),
+  citedChunkIds: z
+    .array(z.number())
+    .describe(
+      'IDs of the chunks that were actually used to inform this answer. Empty array if none were relevant.',
+    ),
+});
 
 @Injectable()
 export class GptService {
-  private openai = new OpenAI({ apiKey: process.env.OPEN_API_KEY });
-  private embeddings = new OpenAIEmbeddings({
-    model: 'text-embedding-3-small',
+  private model = new ChatOpenAI({
+    model: 'gpt-4o-mini',
     apiKey: process.env.OPEN_API_KEY,
-  });
+  }).withStructuredOutput(AnswerSchema);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -26,85 +39,86 @@ export class GptService {
   ) {
     if (!query) throw new BadRequestException('No query provided');
 
-    const [chunks, history, group, channel, privateChat, user] = await Promise.all([
-      this.ragService.retrieveChunks(query, groupId),
-      this.prisma.message.findMany({
-        where: privateChatId ? { privateChatId } : { channelId: channelId! },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      }),
-      // group/channel settings only for channel messages
-      !privateChatId
-        ? this.prisma.group.findUnique({
-            where: { id: groupId },
-            select: { aiPrompt: true, aiPersonality: true },
-          })
-        : null,
-      channelId
-        ? this.prisma.channel.findUnique({
-            where: { id: channelId },
-            select: { aiPrompt: true, aiPersonality: true },
-          })
-        : null,
-      // private chat + user settings only for private messages
-      privateChatId
-        ? this.prisma.privateChat.findUnique({
-            where: { id: privateChatId },
-            select: { aiPrompt: true, aiPersonality: true },
-          })
-        : null,
-      privateChatId && userId
-        ? this.prisma.user.findUnique({
-            where: { id: userId },
-            select: { aiPrompt: true, aiPersonality: true },
-          })
-        : null,
-    ]);
+    const [chunks, history, group, channel, privateChat, user] =
+      await Promise.all([
+        this.ragService.retrieveChunks(query, groupId),
+        this.prisma.message.findMany({
+          where: privateChatId ? { privateChatId } : { channelId: channelId! },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        }),
+        !privateChatId
+          ? this.prisma.group.findUnique({
+              where: { id: groupId },
+              select: { aiPrompt: true, aiPersonality: true },
+            })
+          : null,
+        channelId
+          ? this.prisma.channel.findUnique({
+              where: { id: channelId },
+              select: { aiPrompt: true, aiPersonality: true },
+            })
+          : null,
+        privateChatId
+          ? this.prisma.privateChat.findUnique({
+              where: { id: privateChatId },
+              select: { aiPrompt: true, aiPersonality: true },
+            })
+          : null,
+        privateChatId && userId
+          ? this.prisma.user.findUnique({
+              where: { id: userId },
+              select: { aiPrompt: true, aiPersonality: true },
+            })
+          : null,
+      ]);
 
-    const historyMessages = history.reverse().map((m) => ({
-      role: (m.isAi ? 'assistant' : 'user') as 'assistant' | 'user',
-      content: m.content,
-    }));
+    const historyMessages = history
+      .reverse()
+      .map((m) =>
+        m.isAi ? new AIMessage(m.content) : new HumanMessage(m.content),
+      );
 
-    // Prompts — additive per context type
     const prompts = privateChatId
       ? [user?.aiPrompt, privateChat?.aiPrompt].filter(Boolean).join('\n\n')
       : [group?.aiPrompt, channel?.aiPrompt].filter(Boolean).join('\n\n');
 
-    // Personality — most specific wins per context type
     const personality = privateChatId
-      ? privateChat?.aiPersonality ?? user?.aiPersonality
-      : channel?.aiPersonality ?? group?.aiPersonality;
+      ? (privateChat?.aiPersonality ?? user?.aiPersonality)
+      : (channel?.aiPersonality ?? group?.aiPersonality);
 
-    const context = chunks.length
-      ? chunks.map((c) => c.text).join('\n\n---\n\n')
+    const contextBlock = chunks.length
+      ? chunks
+          .map((c) => `[chunk_id:${c.id}] (${c.fileName})\n${c.text}`)
+          .join('\n\n---\n\n')
       : null;
 
-    const contextMessages = context
-      ? [
-          { role: 'system' as const, content: 'Answer using the provided context if applicable.' },
-          { role: 'system' as const, content: `Context:\n${context}` },
-        ]
-      : [
-          { role: 'system' as const, content: 'No relevant documents were found. Let the user know you have no context to answer from.' },
-        ];
+    const result = await this.model.invoke([
+      ...(personality ? [new SystemMessage(personality)] : []),
+      ...(prompts ? [new SystemMessage(prompts)] : []),
+      contextBlock
+        ? new SystemMessage(
+            `Answer using the context below. In citedChunkIds, include only the chunk IDs you actually drew from.\n\nContext:\n${contextBlock}`,
+          )
+        : new SystemMessage(
+            'No relevant documents found. Say so in your answer and return an empty citedChunkIds array.',
+          ),
+      ...historyMessages,
+      new HumanMessage(query),
+    ]);
 
-        console.log('here: ',prompts)
-
-    const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        ...(personality ? [{ role: 'system' as const, content: personality }] : []),
-        ...(prompts ? [{ role: 'system' as const, content: prompts }] : []),
-        ...contextMessages,
-        ...historyMessages,
-        { role: 'user', content: query },
-      ],
-    });
+    const sources = result.citedChunkIds
+      .map((id) => chunks.find((c) => c.id === id))
+      .filter(Boolean)
+      .map((c) => ({
+        chunkId: c!.id,
+        fileName: c!.fileName,
+        preview: c!.text.slice(0, 200),
+      }));
 
     return {
-      answer: completion.choices[0].message?.content ?? 'No response generated',
-      chunks: chunks.map((c) => ({ preview: c.text.slice(0, 200) })),
+      answer: result.answer,
+      sources,
     };
   }
 }

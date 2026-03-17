@@ -10,6 +10,7 @@ import { ChannelList } from "../../components/channel-list";
 import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
 import { useSocket } from "../../hooks/useSocket";
+import { BookOpen, X } from "lucide-react";
 
 const formatTime = (iso: string) => {
   const date = new Date(iso);
@@ -23,6 +24,47 @@ const formatTime = (iso: string) => {
   if (isYesterday) return `Yesterday ${time}`;
   return `${date.toLocaleDateString(undefined, { day: "numeric", month: "short" })} ${time}`;
 };
+
+interface Source {
+  chunkId: number;
+  fileName: string;
+  preview: string;
+}
+
+// Sources attached to a specific message id
+type SourceMap = Record<number, Source[]>;
+
+function SourcesPopover({
+  sources,
+  onClose,
+}: {
+  sources: Source[];
+  onClose: () => void;
+}) {
+  return (
+    <div className="absolute bottom-full mb-2 left-0 z-20 w-72 rounded-lg border bg-background shadow-lg overflow-hidden">
+      <div
+        className="flex items-center justify-between px-3 py-2"
+        style={{ borderBottom: `1px solid ` }}
+      >
+        <span className="text-xs font-semibold">
+          Sources
+        </span>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="divide-y max-h-60 overflow-y-auto">
+        {sources.map((s) => (
+          <div key={s.chunkId} className="px-3 py-2 space-y-0.5">
+            <p className="text-xs font-medium truncate">{s.fileName}</p>
+            <p className="text-xs text-muted-foreground line-clamp-2">{s.preview}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function ChatPage() {
   const { id } = useParams();
@@ -41,6 +83,8 @@ export function ChatPage() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
+  const [sourceMap, setSourceMap] = useState<SourceMap>({});
+  const [openSourceMsgId, setOpenSourceMsgId] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -194,8 +238,14 @@ export function ChatPage() {
       if (selectedChannel) {
         await messagesApi.send(selectedChannel.id, { content, noAi });
       } else if (selectedPrivateChat) {
-        const { userMessage, aiMessage } = await messagesApi.sendPrivate(selectedPrivateChat.id, { content });
+        const { userMessage, aiMessage, sources } = await messagesApi.sendPrivate(
+          selectedPrivateChat.id,
+          { content },
+        );
         setMessages((prev) => [...prev, userMessage, aiMessage]);
+        if (sources?.length) {
+          setSourceMap((prev) => ({ ...prev, [aiMessage.id]: sources }));
+        }
         setAsking(false);
       }
     } catch {
@@ -205,6 +255,38 @@ export function ChatPage() {
         userId: 0, isPinned: false, createdAt: new Date().toISOString(), replies: [],
       } as Message]);
       setAsking(false);
+    }
+  };
+
+  // Socket path: attach sources when the AI message arrives via socket
+  const pendingSources = useRef<Source[] | null>(null);
+  const handleAskChannel = async (noAi = false) => {
+    if (!question.trim() || !selectedChannel) return;
+    const content = question.trim();
+    setQuestion("");
+    if (!noAi) setAsking(true);
+    try {
+      const { aiMessage, sources } = await messagesApi.send(selectedChannel.id, { content, noAi });
+      if (aiMessage?.id && sources?.length) {
+        setSourceMap((prev) => ({ ...prev, [aiMessage.id]: sources }));
+      }
+    } catch {
+      setMessages((prev) => [...prev, {
+        id: Date.now(), content: "Error getting response.", isAi: true,
+        channelId: selectedChannel.id, privateChatId: null,
+        userId: 0, isPinned: false, createdAt: new Date().toISOString(), replies: [],
+      } as Message]);
+      setAsking(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    e.preventDefault();
+    if (selectedChannel) {
+      handleAskChannel(false);
+    } else {
+      handleAsk(false);
     }
   };
 
@@ -265,53 +347,100 @@ export function ChatPage() {
                 )}
                 {messages.map((msg) => {
                   const style = getMessageStyle(msg);
+                  const msgSources = sourceMap[msg.id];
+                  const isSourceOpen = openSourceMsgId === msg.id;
+                  const bubbleColor = activeColor ?? "hsl(var(--primary))";
+
                   return (
-                    <div key={msg.id} className={cn("flex flex-col max-w-[75%] gap-1", style === "own" ? "self-end items-end" : "self-start items-start")}>
-                      <div className={cn("rounded-lg px-4 py-2 text-sm whitespace-pre-wrap",
-                        style === "own" && "bg-channel text-primary-foreground",
-                        style === "other" && "bg-muted text-foreground",
-                        style === "ai" && "bg-transparent p-1 text-foreground",
-                      )}>
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        "flex flex-col max-w-[75%] gap-1",
+                        style === "own" ? "self-end items-end" : "self-start items-start",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "rounded-lg px-4 py-2 text-sm whitespace-pre-wrap",
+                          style === "ai" && "bg-transparent p-1 text-foreground",
+                        )}
+                        style={
+                          style === "own"
+                            ? { backgroundColor: bubbleColor, color: style === "own" ? "#fff" : undefined }
+                            : { backgroundColor: "hsl(var(--muted))", color: "hsl(var(--foreground))" }
+                        }
+                      >
                         {msg.content}
                       </div>
-                      <div className="flex items-center gap-1.5 px-1">
+
+                      <div className="flex items-center gap-1.5 px-1 relative">
                         {style !== "own" && (
                           <span className="text-xs font-medium text-muted-foreground">
                             {style === "ai" ? "AI" : (msg.user?.name ?? `User #${msg.userId}`)}
                           </span>
                         )}
                         <span className="text-xs text-muted-foreground/60">{formatTime(msg.createdAt)}</span>
+
+                        {/* Sources button — only shown on AI messages that have sources */}
+                        {style === "ai" && msgSources?.length ? (
+                          <div className="relative">
+                            <button
+                              onClick={() => setOpenSourceMsgId((prev) => prev === msg.id ? null : msg.id)}
+                              className="flex items-center gap-0.5 text-xs transition-colors"
+                              title="View sources"
+                            >
+                              <BookOpen className="h-3 w-3" />
+                              <span className="text-muted-foreground/70">{msgSources.length}</span>
+                            </button>
+                            {isSourceOpen && (
+                              <SourcesPopover
+                                sources={msgSources}
+                                onClose={() => setOpenSourceMsgId(null)}
+                              />
+                            )}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   );
                 })}
                 {asking && (
                   <div className="self-start flex flex-col gap-1 items-start">
-                    <div className="bg-muted rounded-lg px-4 py-2 text-sm text-muted-foreground animate-pulse">Thinking...</div>
+                    <div className="rounded-lg px-4 py-2 text-sm text-muted-foreground animate-pulse"
+                      style={{ backgroundColor: (activeColor ?? "hsl(var(--primary))") + "18" }}
+                    >
+                      Thinking...
+                    </div>
                   </div>
                 )}
                 <div ref={bottomRef} />
               </div>
             </div>
+
             <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pointer-events-none">
               <div className="max-w-2xl mx-auto pointer-events-auto">
                 <div className="flex gap-2 items-center bg-background/80 backdrop-blur-sm border rounded-xl px-3 py-2 shadow-lg">
                   <Input
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleAsk(true)}
+                    onKeyDown={handleKeyDown}
                     placeholder={selectedPrivateChat ? "Ask AI something..." : "Message or ask AI..."}
                     className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
                     disabled={asking}
                   />
                   {selectedChannel && (
-                    <Button variant="ghost" onClick={() => handleAsk(true)} disabled={asking || !question.trim()} size="lg">
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleAskChannel(true)}
+                      disabled={asking || !question.trim()}
+                      size="lg"
+                    >
                       Send
                     </Button>
                   )}
                   <Button
                     variant="channel"
-                    onClick={() => handleAsk(false)}
+                    onClick={() => selectedChannel ? handleAskChannel(false) : handleAsk(false)}
                     disabled={asking || !question.trim()}
                     size="lg"
                     style={activeColor ? { backgroundColor: activeColor, borderColor: activeColor } : undefined}

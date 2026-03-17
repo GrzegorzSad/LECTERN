@@ -53,7 +53,7 @@ export class MessagesService {
     if (noAi) {
       const userMessage = await this.findMessageWithUser(userMsg.id);
       this.chatGateway.emitNewMessage(channelId, userMessage);
-      return { userMessage, aiMessage: null, chunks: [] };
+      return { userMessage, aiMessage: null, sources: [] };
     }
 
     const aiResponse = await this.gptService.ask(
@@ -64,7 +64,7 @@ export class MessagesService {
 
     const aiMsg = await this.prisma.message.create({
       data: {
-        content: aiResponse.answer ?? 'No response generated',
+        content: aiResponse.answer,
         channelId,
         userId,
         isAi: true,
@@ -76,11 +76,11 @@ export class MessagesService {
       this.findMessageWithUser(userMsg.id),
       this.findMessageWithUser(aiMsg.id),
     ]);
-    
+
     this.chatGateway.emitNewMessage(channelId, userMessage);
     this.chatGateway.emitNewMessage(channelId, aiMessage);
 
-    return { userMessage, aiMessage, chunks: aiResponse.chunks };
+    return { userMessage, aiMessage, sources: aiResponse.sources };
   }
 
   async getMessages(channelId: number, userId: number) {
@@ -177,7 +177,7 @@ export class MessagesService {
 
     const aiMsg = await this.prisma.message.create({
       data: {
-        content: aiResponse.answer ?? 'No response generated',
+        content: aiResponse.answer,
         privateChatId,
         userId,
         isAi: true,
@@ -190,7 +190,7 @@ export class MessagesService {
       this.findMessageWithUser(aiMsg.id),
     ]);
 
-    return { userMessage, aiMessage, chunks: aiResponse.chunks };
+    return { userMessage, aiMessage, sources: aiResponse.sources };
   }
 
   async getPrivateMessages(privateChatId: number, userId: number) {
@@ -210,4 +210,5 @@ export class MessagesService {
       },
     });
   }
+  
 }

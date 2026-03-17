@@ -79,6 +79,12 @@ export interface CreateMessageDto {
   noAi?: boolean;
 }
 
+export interface ChunkSource {
+  chunkId: number;
+  fileName: string;
+  preview: string;
+}
+
 export interface Message {
   id: number;
   content: string;
@@ -93,6 +99,7 @@ export interface Message {
     id: number;
     name: string;
   };
+  sources?: ChunkSource[];
 }
 
 // --- Private Chats ---
@@ -152,7 +159,5 @@ export interface GptAskDto {
 
 export interface GptAskResponse {
   answer: string;
-  chunks: {
-    preview: string;
-  }[];
+  sources: ChunkSource[];
 }
