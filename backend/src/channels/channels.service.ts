@@ -35,7 +35,7 @@ export class ChannelsService {
     });
   }
 
-  async updateChannel(channelId: number, name: string, userId: number) {
+  async updateChannel(channelId: number, name: string, userId: number, color?: string) {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
     });
@@ -52,7 +52,7 @@ export class ChannelsService {
 
     return this.prisma.channel.update({
       where: { id: channelId },
-      data: { name },
+      data: { name, color },
     });
   }
 

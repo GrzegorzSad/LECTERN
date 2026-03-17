@@ -20,7 +20,7 @@ export class PrivateChatsService {
     });
   }
 
-  async renamePrivateChat(privateChatId: number, name: string, userId: number) {
+  async renamePrivateChat(privateChatId: number, name: string, userId: number, color?: string) {
     const chat = await this.prisma.privateChat.findUnique({
       where: { id: privateChatId },
     });
@@ -29,7 +29,7 @@ export class PrivateChatsService {
       throw new ForbiddenException('Not your private chat');
     return this.prisma.privateChat.update({
       where: { id: privateChatId },
-      data: { name },
+      data: { name, color },
     });
   }
 

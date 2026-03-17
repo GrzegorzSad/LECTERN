@@ -98,7 +98,7 @@ export function ChatPage() {
   const openCreateDialog = () => {
     setDialogMode("create");
     setChannelName("");
-    setIsPrivate(!isAdmin); // non-admins default to private
+    setIsPrivate(!isAdmin);
     setEditingChannel(null);
     setEditingPrivateChat(null);
     setDialogOpen(true);
@@ -170,6 +170,20 @@ export function ChatPage() {
     }
   };
 
+  const handleColorChange = async (channel: Channel, color: string) => {
+    if (!id) return;
+    const updated = await channelsApi.update(Number(id), channel.id, { color });
+    setChannels((prev) => prev.map((c) => c.id === updated.id ? updated : c));
+    if (selectedChannel?.id === updated.id) setSelectedChannel(updated);
+  };
+
+  const handlePrivateChatColorChange = async (chat: PrivateChat, color: string) => {
+    if (!id) return;
+    const updated = await privateChatsApi.rename(Number(id), chat.id, chat.name, color);
+    setPrivateChats((prev) => prev.map((c) => c.id === updated.id ? updated : c));
+    if (selectedPrivateChat?.id === updated.id) setSelectedPrivateChat(updated);
+  };
+
   const handleAsk = async (noAi = false) => {
     if (!question.trim()) return;
     if (!selectedChannel && !selectedPrivateChat) return;
@@ -200,6 +214,7 @@ export function ChatPage() {
     return "other";
   };
 
+  const activeColor = selectedChannel?.color || selectedPrivateChat?.color || null;
   const activeName = selectedChannel?.name ?? selectedPrivateChat?.name ?? null;
 
   if (loading || channelsLoading || userLoading) return <div></div>;
@@ -224,6 +239,8 @@ export function ChatPage() {
         onRename={isAdmin ? openRenameDialog : undefined}
         onDeletePrivateChat={handleDeletePrivateChat}
         onRenamePrivateChat={openRenamePrivateChatDialog}
+        onColorChange={isAdmin ? handleColorChange : undefined}
+        onPrivateChatColorChange={handlePrivateChatColorChange}
         onCreate={openCreateDialog}
       />
 
@@ -233,7 +250,15 @@ export function ChatPage() {
             <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
             <div className="h-full overflow-y-auto">
               <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 flex flex-col gap-4">
-                <h2 className="text-lg font-semibold"># {activeName}</h2>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  {activeColor && (
+                    <span
+                      className="w-3 h-3 rounded-full shrink-0"
+                      style={{ backgroundColor: activeColor }}
+                    />
+                  )}
+                  # {activeName}
+                </h2>
                 {messagesLoading && <p className="text-muted-foreground text-sm">Loading messages...</p>}
                 {!messagesLoading && messages.length === 0 && (
                   <p className="text-muted-foreground text-sm">No messages yet — ask something!</p>
@@ -284,7 +309,13 @@ export function ChatPage() {
                       Send
                     </Button>
                   )}
-                  <Button variant="channel" onClick={() => handleAsk(false)} disabled={asking || !question.trim()} size="lg">
+                  <Button
+                    variant="channel"
+                    onClick={() => handleAsk(false)}
+                    disabled={asking || !question.trim()}
+                    size="lg"
+                    style={activeColor ? { backgroundColor: activeColor, borderColor: activeColor } : undefined}
+                  >
                     {asking ? "Asking..." : "Ask AI"}
                   </Button>
                 </div>

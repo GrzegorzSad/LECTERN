@@ -31,6 +31,7 @@ import {
 import { Card } from "./card";
 import { Button } from "./button";
 import { MoreHorizontal, Plus, Pencil, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 
 type DialogMode = "create" | "edit";
 
@@ -110,7 +111,7 @@ export function GroupList({ groups }: { groups: Group[] }) {
       <Sidebar collapsible="icon">
         <SidebarHeader className="flex flex-row items-center justify-between px-2 py-2">
           {!isCollapsed && (
-            <span className="text-md font-semibold">LECTERN</span>
+            <Link to="/"><span className="text-md font-semibold">LECTERN</span></Link>
           )}
           <SidebarTrigger />
         </SidebarHeader>

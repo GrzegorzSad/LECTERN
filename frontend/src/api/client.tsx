@@ -120,7 +120,7 @@ export const channelsApi = {
   update: (
     groupId: number,
     channelId: number,
-    data: Partial<CreateChannelDto>,
+    data: Partial<CreateChannelDto> & { color?: string },
   ) =>
     request<Channel>(`/groups/${groupId}/channels/${channelId}`, {
       method: "PUT",
@@ -175,10 +175,10 @@ export const privateChatsApi = {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
-  rename: (groupId: number, privateChatId: number, name: string) =>
+  rename: (groupId: number, privateChatId: number, name: string, color?: string) =>
     request<PrivateChat>(`/groups/${groupId}/private-chats/${privateChatId}`, {
       method: "PUT",
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, color }),
     }),
   list: (groupId: number) =>
     request<PrivateChat[]>(`/groups/${groupId}/private-chats`),

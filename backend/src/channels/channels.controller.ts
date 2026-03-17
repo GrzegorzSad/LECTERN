@@ -46,13 +46,14 @@ export class ChannelsController {
   @Put(':channelId')
   update(
     @Param('channelId', ParseIntPipe) channelId: number,
-    @Body() body: { name: string },
+    @Body() body: { name: string; color?: string },
     @Req() req: Request,
   ) {
     return this.channelsService.updateChannel(
       channelId,
       body.name,
       req.session.user!.id,
+      body.color,
     );
   }
 

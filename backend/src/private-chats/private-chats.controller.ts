@@ -49,13 +49,14 @@ export class PrivateChatsController {
   @Put(':privateChatId')
   rename(
     @Param('privateChatId', ParseIntPipe) privateChatId: number,
-    @Body() body: { name: string },
+    @Body() body: { name: string, color?: string },
     @Req() req: Request,
   ) {
     return this.privateChatsService.renamePrivateChat(
       privateChatId,
       body.name,
       req.session.user!.id,
+      body.color
     );
   }
 

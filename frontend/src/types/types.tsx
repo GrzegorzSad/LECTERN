@@ -69,6 +69,7 @@ export interface Channel {
   groupId: number;
   aiPrompt?: string | null;
   aiPersonality?: string | null;
+  color?: string | null;
 }
 
 // --- Messages ---
@@ -102,6 +103,7 @@ export interface PrivateChat {
   userId: number;
   aiPrompt?: string | null;
   aiPersonality?: string | null;
+  color?: string | null;
 }
 
 // --- Documents ---

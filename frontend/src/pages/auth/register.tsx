@@ -37,7 +37,8 @@ export function RegisterPage() {
 
   const onSubmit = async (data: RegisterForm) => {
     try {
-      const res = (await authApi.register(data)) as { user: User };
+      const { confirmPassword, ...registerData } = data;
+      const res = (await authApi.register(registerData)) as { user: User };
       setUser(res.user);
       navigate("/");
     } catch (err) {

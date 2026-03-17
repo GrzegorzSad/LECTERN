@@ -104,6 +104,7 @@ CREATE TABLE "Channel" (
     "groupId" INTEGER NOT NULL,
     "aiPrompt" TEXT,
     "aiPersonality" TEXT,
+    "color" TEXT,
 
     CONSTRAINT "Channel_pkey" PRIMARY KEY ("id")
 );
@@ -131,6 +132,7 @@ CREATE TABLE "PrivateChat" (
     "groupId" INTEGER NOT NULL,
     "aiPrompt" TEXT,
     "aiPersonality" TEXT,
+    "color" TEXT,
 
     CONSTRAINT "PrivateChat_pkey" PRIMARY KEY ("id")
 );
