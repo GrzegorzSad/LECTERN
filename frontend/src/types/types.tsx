@@ -149,7 +149,9 @@ export interface CreateChunksDto {
 // --- Sources ---
 export interface Source {
   id: number;
+  fileId: number; 
   name: string;
+  preview: string;
 }
 
 // --- GPT ---

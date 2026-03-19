@@ -117,6 +117,8 @@ export class GptService {
         preview: c!.text.slice(0, 200),
       }));
 
+      console.log('RAG SOURCES:', sources);
+
     return {
       answer: result.answer,
       sources,

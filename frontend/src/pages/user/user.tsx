@@ -79,6 +79,39 @@ function Section({
 }
 
 // ---------------------------------------------------------------------------
+// Collapsible sub-section within a card
+// ---------------------------------------------------------------------------
+
+function CollapsibleRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-1.5 py-2 text-left group"
+      >
+        {open ? (
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        )}
+        <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+          {label}
+        </span>
+      </button>
+      {open && <div className="pb-2">{children}</div>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // AI settings form
 // ---------------------------------------------------------------------------
 
@@ -422,80 +455,76 @@ export function UserPage() {
       {/* Account */}
       <div className="overflow-hidden rounded-md border bg-background">
         <div className="px-4 py-3 border-b">
-          <p className="text-sm font-medium">Account</p>
+          <p className="text-sm font-medium">Account Settings</p>
         </div>
 
-        {/* Display name */}
-        <div className="px-4 py-3 border-b">
-          <p className="text-xs font-medium text-muted-foreground mb-1.5">
-            Display Name
-          </p>
-          <div className="flex gap-2">
-            <Input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Your name"
-              className="flex-1"
-            />
-            <Button
-              size="sm"
-              onClick={handleSaveName}
-              disabled={savingName || newName.trim() === user.name}
-            >
-              {savingName ? "Saving..." : nameSuccess ? "Saved ✓" : "Save"}
-            </Button>
-          </div>
-          {nameError && (
-            <p className="text-xs text-destructive mt-1.5">{nameError}</p>
-          )}
-        </div>
-
-        {/* Password */}
-        <div className="px-4 py-3">
-          <p className="text-xs font-medium text-muted-foreground mb-2">
-            Change Password
-          </p>
-          <div className="space-y-2">
-            <Input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Current password"
-            />
-            <Input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="New password"
-            />
-            <Input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
-              onKeyDown={(e) => e.key === "Enter" && handleSavePassword()}
-            />
-            {passwordError && (
-              <p className="text-xs text-destructive">{passwordError}</p>
-            )}
-            {passwordSuccess && (
-              <p className="text-xs text-green-600">Password updated ✓</p>
-            )}
-            <div className="flex justify-end">
+        <div className="px-4 pt-2 pb-1 divide-y divide-border">
+          {/* Display name — collapsible */}
+          <CollapsibleRow label="Display Name">
+            <div className="flex gap-2 pt-1">
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Your name"
+                className="flex-1"
+              />
               <Button
                 size="sm"
-                onClick={handleSavePassword}
-                disabled={
-                  savingPassword ||
-                  !currentPassword ||
-                  !newPassword ||
-                  !confirmPassword
-                }
+                onClick={handleSaveName}
+                disabled={savingName || newName.trim() === user.name}
               >
-                {savingPassword ? "Updating..." : "Update Password"}
+                {savingName ? "Saving..." : nameSuccess ? "Saved ✓" : "Save"}
               </Button>
             </div>
-          </div>
+            {nameError && (
+              <p className="text-xs text-destructive mt-1.5">{nameError}</p>
+            )}
+          </CollapsibleRow>
+
+          {/* Change password — collapsible */}
+          <CollapsibleRow label="Change Password">
+            <div className="space-y-2 pt-1">
+              <Input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Current password"
+              />
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="New password"
+              />
+              <Input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                onKeyDown={(e) => e.key === "Enter" && handleSavePassword()}
+              />
+              {passwordError && (
+                <p className="text-xs text-destructive">{passwordError}</p>
+              )}
+              {passwordSuccess && (
+                <p className="text-xs text-green-600">Password updated ✓</p>
+              )}
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={handleSavePassword}
+                  disabled={
+                    savingPassword ||
+                    !currentPassword ||
+                    !newPassword ||
+                    !confirmPassword
+                  }
+                >
+                  {savingPassword ? "Updating..." : "Update Password"}
+                </Button>
+              </div>
+            </div>
+          </CollapsibleRow>
         </div>
       </div>
 
