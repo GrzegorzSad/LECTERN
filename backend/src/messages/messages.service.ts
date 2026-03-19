@@ -68,7 +68,7 @@ export class MessagesService {
         channelId,
         userId,
         isAi: true,
-        parentMessageId: userMsg.id,
+        parentMessageId: null,
       },
     });
 
@@ -150,6 +150,7 @@ export class MessagesService {
     privateChatId: number,
     userId: number,
     content: string,
+    parentMessageId?: number,
   ) {
     const privateChat = await this.prisma.privateChat.findUnique({
       where: { id: privateChatId },
@@ -164,6 +165,7 @@ export class MessagesService {
         privateChatId,
         userId,
         isAi: false,
+        parentMessageId: parentMessageId ?? null,
       },
     });
 
@@ -181,7 +183,7 @@ export class MessagesService {
         privateChatId,
         userId,
         isAi: true,
-        parentMessageId: userMsg.id,
+        parentMessageId: null,
       },
     });
 

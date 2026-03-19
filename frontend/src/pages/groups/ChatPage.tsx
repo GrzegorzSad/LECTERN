@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
-import { channelsApi, messagesApi, privateChatsApi } from "../../api/client";
+import { useNavigate, useParams } from "react-router-dom";
+import { BASE_URL, channelsApi, messagesApi, privateChatsApi } from "../../api/client";
 import type { Channel, PrivateChat, Message } from "../../types/types";
 import { Card } from "../../components/card";
 import { Button } from "../../components/button";
@@ -10,7 +10,7 @@ import { ChannelList } from "../../components/channel-list";
 import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
 import { useSocket } from "../../hooks/useSocket";
-import { BookOpen, X } from "lucide-react";
+import { BookOpen, X, CornerUpLeft } from "lucide-react";
 
 const formatTime = (iso: string) => {
   const date = new Date(iso);
@@ -30,6 +30,7 @@ const formatTime = (iso: string) => {
 
 interface Source {
   chunkId: number;
+  fileId: number;
   fileName: string;
   preview: string;
 }
@@ -60,12 +61,18 @@ function SourcesPopover({
       </div>
       <div className="divide-y max-h-60 overflow-y-auto">
         {sources.map((s) => (
-          <div key={s.chunkId} className="px-3 py-2 space-y-0.5">
+          <a
+            key={s.chunkId}
+            href={`${BASE_URL}/documents/preview/${s.fileId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block px-3 py-2 space-y-0.5 hover:bg-muted/30"
+          >
             <p className="text-xs font-medium truncate">{s.fileName}</p>
             <p className="text-xs text-muted-foreground line-clamp-2">
               {s.preview}
             </p>
-          </div>
+          </a>
         ))}
       </div>
     </div>
@@ -74,6 +81,7 @@ function SourcesPopover({
 
 export function ChatPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { group, loading, error, myRole } = useGroup();
   const { user: currentUser, userLoading } = useAuth();
   const socket = useSocket();
@@ -92,7 +100,20 @@ export function ChatPage() {
   const [asking, setAsking] = useState(false);
   const [sourceMap, setSourceMap] = useState<SourceMap>({});
   const [openSourceMsgId, setOpenSourceMsgId] = useState<number | null>(null);
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const scrollToMessage = (messageId: number | null) => {
+    if (!messageId) return;
+    const target = document.getElementById(`message-${messageId}`);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.classList.add("ring", "ring-primary/40", "ring-offset-2", "ring-offset-background");
+      setTimeout(() => {
+        target.classList.remove("ring", "ring-primary/40", "ring-offset-2", "ring-offset-background");
+      }, 1200);
+    }
+  };
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<
@@ -283,20 +304,36 @@ export function ChatPage() {
     if (!question.trim()) return;
     if (!selectedChannel && !selectedPrivateChat) return;
     const content = question.trim();
+    const parentMessageId = replyToMessage?.id;
     setQuestion("");
     if (!noAi) setAsking(true);
     try {
       if (selectedChannel) {
-        await messagesApi.send(selectedChannel.id, { content, noAi });
+        const { userMessage, aiMessage, sources } = await messagesApi.send(
+          selectedChannel.id,
+          { content, noAi, parentMessageId },
+        );
+        setMessages((prev) => [...prev, userMessage]);
+        if (aiMessage) {
+          setMessages((prev) => [...prev, aiMessage]);
+          if (sources?.length)
+            setSourceMap((prev) => ({ ...prev, [aiMessage.id]: sources }));
+        }
       } else if (selectedPrivateChat) {
         const { userMessage, aiMessage, sources } =
-          await messagesApi.sendPrivate(selectedPrivateChat.id, { content });
-        setMessages((prev) => [...prev, userMessage, aiMessage]);
-        if (sources?.length) {
-          setSourceMap((prev) => ({ ...prev, [aiMessage.id]: sources }));
+          await messagesApi.sendPrivate(selectedPrivateChat.id, {
+            content,
+            parentMessageId,
+          });
+        setMessages((prev) => [...prev, userMessage]);
+        if (aiMessage) {
+          setMessages((prev) => [...prev, aiMessage]);
+          if (sources?.length)
+            setSourceMap((prev) => ({ ...prev, [aiMessage.id]: sources }));
         }
-        setAsking(false);
       }
+      setReplyToMessage(null);
+      setAsking(false);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -312,25 +349,28 @@ export function ChatPage() {
           replies: [],
         } as Message,
       ]);
+      setReplyToMessage(null);
       setAsking(false);
     }
   };
 
   // Socket path: attach sources when the AI message arrives via socket
-  const pendingSources = useRef<Source[] | null>(null);
   const handleAskChannel = async (noAi = false) => {
     if (!question.trim() || !selectedChannel) return;
     const content = question.trim();
+    const parentMessageId = replyToMessage?.id;
     setQuestion("");
     if (!noAi) setAsking(true);
     try {
       const { aiMessage, sources } = await messagesApi.send(
         selectedChannel.id,
-        { content, noAi },
+        { content, noAi, parentMessageId },
       );
       if (aiMessage?.id && sources?.length) {
         setSourceMap((prev) => ({ ...prev, [aiMessage.id]: sources }));
       }
+      setReplyToMessage(null);
+      setAsking(false);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -346,6 +386,7 @@ export function ChatPage() {
           replies: [],
         } as Message,
       ]);
+      setReplyToMessage(null);
       setAsking(false);
     }
   };
@@ -398,6 +439,10 @@ export function ChatPage() {
         onRename={isAdmin ? openRenameDialog : undefined}
         onDeletePrivateChat={handleDeletePrivateChat}
         onRenamePrivateChat={openRenamePrivateChatDialog}
+        onChannelSettings={isAdmin ? (channel) => {
+          if (!group) return;
+          navigate(`/group/${group.id}/settings?channel=${channel.id}`);
+        } : undefined}
         onColorChange={isAdmin ? handleColorChange : undefined}
         onPrivateChatColorChange={handlePrivateChatColorChange}
         onCreate={openCreateDialog}
@@ -432,7 +477,6 @@ export function ChatPage() {
                   const style = getMessageStyle(msg);
                   const msgSources = sourceMap[msg.id];
                   const isSourceOpen = openSourceMsgId === msg.id;
-                  const bubbleColor = activeColor ?? "hsl(var(--primary))";
 
                   return (
                     <div
@@ -444,9 +488,33 @@ export function ChatPage() {
                           : "self-start items-start",
                       )}
                     >
+                      {msg.parentMessageId && (
+                        <div className="rounded-lg border border-muted/40 px-3 py-1 text-xs text-muted-foreground mb-1">
+                          Replying to:
+                          {(() => {
+                            const parent = messages.find((m) => m.id === msg.parentMessageId);
+                            if (parent) {
+                              return (
+                                <button
+                                  onClick={() => scrollToMessage(parent.id)}
+                                  className="font-medium text-foreground hover:text-primary transition-colors text-left w-full"
+                                >
+                                  {parent.user?.name ?? (parent.isAi ? 'AI' : `User #${parent.userId}`)}:
+                                  {' '}
+                                  {parent.content.length > 80
+                                    ? `${parent.content.slice(0, 80)}...`
+                                    : parent.content}
+                                </button>
+                              );
+                            }
+                            return <span className="font-medium text-foreground">Unknown message</span>;
+                          })()}
+                        </div>
+                      )}
                       <div
+                        id={`message-${msg.id}`}
                         className={cn(
-                          "rounded-lg px-4 py-2 text-sm whitespace-pre-wrap",
+                          "rounded-lg px-4 py-2 text-sm whitespace-pre-wrap break-words",
                           style === "ai" &&
                             "bg-transparent p-1 text-foreground",
                           style === "own" &&
@@ -504,6 +572,14 @@ export function ChatPage() {
                             )}
                           </div>
                         ) : null}
+                        <button
+                          onClick={() => setReplyToMessage(msg)}
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                          title="Reply to message"
+                        >
+                          <CornerUpLeft className="h-3 w-3" />
+                          <span>Reply</span>
+                        </button>
                       </div>
                     </div>
                   );
@@ -527,7 +603,40 @@ export function ChatPage() {
 
             <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pointer-events-none">
               <div className="max-w-2xl mx-auto pointer-events-auto">
+                {replyToMessage && (
+                  <div className="mb-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-xs flex justify-between items-center">
+                    <div className="truncate">
+                      Replying to {replyToMessage.user?.name ?? (replyToMessage.isAi ? "AI" : `User #${replyToMessage.userId}`)}:
+                      {' '}
+                      {replyToMessage.content.length > 90
+                        ? `${replyToMessage.content.slice(0, 90)}...`
+                        : replyToMessage.content}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReplyToMessage(null)}
+                      className="text-muted-foreground hover:text-foreground"
+                      title="Cancel reply"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
                 <div className="flex gap-2 items-center bg-background/80 backdrop-blur-sm border rounded-xl px-3 py-2 shadow-lg">
+                  {replyToMessage && (
+                    <div className="absolute -top-10 left-0 right-0 mx-auto max-w-2xl bg-slate-100 dark:bg-slate-900 border rounded-md px-3 py-2 text-xs text-muted-foreground flex items-center justify-between gap-2">
+                      <div className="truncate">
+                        Replying to {replyToMessage.user?.name ?? (replyToMessage.isAi ? 'AI' : `User #${replyToMessage.userId}`)}: {replyToMessage.content.length > 80 ? `${replyToMessage.content.slice(0, 80)}...` : replyToMessage.content}
+                      </div>
+                      <button
+                        onClick={() => setReplyToMessage(null)}
+                        className="text-red-500 hover:text-red-700"
+                        title="Cancel reply"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                   <Input
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
@@ -613,19 +722,30 @@ export function ChatPage() {
                 </button>
               </div>
             )}
-            <Input
-              autoFocus
-              value={channelName}
-              onChange={(e) => setChannelName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleDialogSubmit()}
-              placeholder={
-                dialogMode === "renamePrivate"
+            <div className="space-y-1">
+              <label htmlFor="channel-name" className="text-sm font-medium">
+                {dialogMode === "renamePrivate"
                   ? "Private chat name"
                   : isPrivate
                     ? "Private chat name"
-                    : "Channel name"
-              }
-            />
+                    : "Channel name"}
+              </label>
+              <Input
+                id="channel-name"
+                autoFocus
+                value={channelName}
+                onChange={(e) => setChannelName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleDialogSubmit()}
+                placeholder={
+                  dialogMode === "renamePrivate"
+                    ? "Enter private chat name"
+                    : isPrivate
+                      ? "Enter private chat name"
+                      : "Enter channel name"
+                }
+                className="bg-white text-black"
+              />
+            </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancel

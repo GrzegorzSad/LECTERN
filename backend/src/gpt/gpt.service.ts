@@ -112,6 +112,7 @@ export class GptService {
       .filter(Boolean)
       .map((c) => ({
         chunkId: c!.id,
+        fileId: c!.fileId,
         fileName: c!.fileName,
         preview: c!.text.slice(0, 200),
       }));

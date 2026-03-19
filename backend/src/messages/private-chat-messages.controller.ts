@@ -11,13 +11,14 @@ export class PrivateChatMessagesController {
   @Post()
   send(
     @Param('privateChatId', ParseIntPipe) privateChatId: number,
-    @Body() body: { content: string },
+    @Body() body: { content: string; parentMessageId?: number },
     @Req() req: Request,
   ) {
     return this.messagesService.sendPrivateMessage(
       privateChatId,
       req.session.user!.id,
       body.content,
+      body.parentMessageId,
     );
   }
 

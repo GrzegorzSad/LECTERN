@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { groupsApi, channelsApi } from "../../api/client";
 import { useGroup } from "./GroupLayout";
 import { useGroups } from "../../context/GroupsContext";
 import type { Channel } from "../../types/types";
 import { Button } from "../../components/button";
 import { Input } from "../../components/input";
+import { Loading } from "../../components/loading";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 const PERSONALITIES = [
@@ -152,6 +153,7 @@ export function SettingsPage() {
   const { group, loading, error } = useGroup();
   const { removeGroup } = useGroups();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [channels, setChannels] = useState<Channel[]>([]);
   const [confirming, setConfirming] = useState(false);
@@ -164,6 +166,26 @@ export function SettingsPage() {
     if (!id) return;
     channelsApi.list(Number(id)).then(setChannels);
   }, [id]);
+
+  useEffect(() => {
+    if (!channels.length) return;
+
+    const channelParam = searchParams.get("channel");
+    if (!channelParam) return;
+
+    const parsed = Number(channelParam);
+    if (Number.isNaN(parsed)) return;
+
+    const target = channels.find((c) => c.id === parsed);
+    if (!target) return;
+
+    setExpandedChannelId(parsed);
+
+    const el = document.getElementById(`channel-settings-${parsed}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [channels, searchParams]);
 
   const handleDelete = async () => {
     if (!id) return;
@@ -210,7 +232,7 @@ export function SettingsPage() {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <Loading />;
   if (error || !group) return <div>Group not found</div>;
 
   return (
@@ -240,7 +262,11 @@ export function SettingsPage() {
           {channels.map((channel) => {
             const isExpanded = expandedChannelId === channel.id;
             return (
-              <div key={channel.id} className="border-b last:border-b-0">
+              <div
+                id={`channel-settings-${channel.id}`}
+                key={channel.id}
+                className="border-b last:border-b-0"
+              >
                 <button
                   onClick={() =>
                     setExpandedChannelId((prev) =>

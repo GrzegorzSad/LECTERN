@@ -213,20 +213,32 @@ export function GroupList({ groups }: { groups: Group[] }) {
             <h2 className="text-lg font-semibold">
               {dialogMode === "create" ? "New Group" : "Edit Group"}
             </h2>
-            <input
-              autoFocus
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-              placeholder="Group name"
-              className="w-full border rounded px-3 py-2"
-            />
-            <input
-              value={groupImg}
-              onChange={(e) => setGroupImg(e.target.value)}
-              placeholder="Image URL (optional)"
-              className="w-full border rounded px-3 py-2"
-            />
+            <div className="space-y-1">
+              <label htmlFor="group-name" className="text-sm font-medium">
+                Group name
+              </label>
+              <input
+                id="group-name"
+                autoFocus
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                placeholder="Enter group name"
+                className="w-full border rounded px-3 py-2 bg-white text-black"
+              />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="group-image" className="text-sm font-medium">
+                Image URL (optional)
+              </label>
+              <input
+                id="group-image"
+                value={groupImg}
+                onChange={(e) => setGroupImg(e.target.value)}
+                placeholder="https://example.com/image.png"
+                className="w-full border rounded px-3 py-2 bg-white text-black"
+              />
+            </div>
             {groupImg.trim() && (
               <img
                 src={groupImg.trim()}

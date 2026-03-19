@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card } from "../../components/card"
 import { Button } from "../../components/button"
+import { Loading } from "../../components/loading"
 import { linkedAccountsApi } from "../../api/client"
 
 interface LinkedAccount {
@@ -35,7 +36,7 @@ export function LinkedAccountsPage() {
     loadAccounts()
   }
 
-  if (loading) return <div>Loading...</div>
+  if (loading) return <Loading />
 
   return (
     <div className="max-w-2xl space-y-6">

@@ -63,6 +63,7 @@ export class DocumentsService {
     sourceId?: number,
     isLinked?: boolean,
     remoteId?: string,
+    previewUrl?: string,
   ) {
     const ext = path.extname(file.originalname);
     const filename = `${randomUUID()}${ext}`;
@@ -83,6 +84,7 @@ export class DocumentsService {
         userId,
         groupId,
         remoteId,
+        previewUrl,
         sourceId,
         isLinked: isLinked,
       },
@@ -173,6 +175,7 @@ export class DocumentsService {
         sourceId,
         true,
         itemId,
+        metadata.webUrl,
       );
     } catch (err) {
       throw new BadRequestException('Failed to download file from OneDrive');
@@ -192,6 +195,12 @@ export class DocumentsService {
     }));
 
     return this.prisma.chunk.createMany({ data: chunkRecords });
+  }
+
+  async getDocument(fileId: number) {
+    const file = await this.prisma.file.findUnique({ where: { id: fileId } });
+    if (!file) throw new BadRequestException('File not found');
+    return file;
   }
 
   async deleteDocument(fileId: number) {

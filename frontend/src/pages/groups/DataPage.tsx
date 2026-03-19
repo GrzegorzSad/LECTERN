@@ -9,11 +9,18 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { documentsApi, membersApi } from "../../api/client";
+import { documentsApi, membersApi, BASE_URL } from "../../api/client";
 import type { Document, Member } from "../../types/types";
 import { Card } from "../../components/card";
 import { Button } from "../../components/button";
+import { Loading } from "../../components/loading";
 import { SearchFilter } from "../../components/search-filter";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -29,6 +36,8 @@ import {
   ArrowUpDown,
   Cloud,
   HardDriveUpload,
+  MoreHorizontal,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -256,7 +265,7 @@ export function DataPage() {
         header: ({ column }) => <SortHeader label="Name" column={column} />,
         cell: ({ row }) => (
           <a
-            href={row.original.path}
+            href={`${BASE_URL}/documents/preview/${row.original.id}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 min-w-0 group/link"
@@ -335,12 +344,22 @@ export function DataPage() {
 
           return (
             <div className="flex justify-end">
-              <button
-                onClick={() => setConfirmId(file.id)}
-                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1 rounded"
-              >
-                🗑️
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-all p-1 rounded">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="left" align="end" className="w-32">
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => setConfirmId(file.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           );
         },
@@ -368,7 +387,7 @@ export function DataPage() {
     getSortedRowModel: getSortedRowModel(),
   });
 
-  if (loading || filesLoading) return <div>Loading...</div>;
+  if (loading || filesLoading) return <Loading />;
   if (error || !group) return <div>Group not found</div>;
 
   return (

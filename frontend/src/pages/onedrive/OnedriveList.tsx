@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { oneDriveApi, documentsApi, linkedAccountsApi } from "../../api/client";
 import { Card } from "../../components/card";
 import { Button } from "../../components/button";
+import { Loading } from "../../components/loading";
 import { SearchFilter } from "../../components/search-filter";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
@@ -282,7 +283,7 @@ export function OneDriveListPage() {
       return item;
     });
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <Loading />;
 
   if (!hasOneDrive) {
     return (

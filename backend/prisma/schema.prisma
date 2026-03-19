@@ -74,9 +74,10 @@ model File {
   user      User     @relation(fields: [userId], references: [id])
   userId    Int
 
-  remoteId  String?
-  sourceId  Int?
-  isLinked  Boolean  @default(false)
+  remoteId   String?
+  previewUrl String?
+  sourceId   Int?
+  isLinked   Boolean  @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

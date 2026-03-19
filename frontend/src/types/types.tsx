@@ -81,6 +81,7 @@ export interface CreateMessageDto {
 
 export interface ChunkSource {
   chunkId: number;
+  fileId: number;
   fileName: string;
   preview: string;
 }
@@ -130,6 +131,7 @@ export interface Document {
   isLinked?: boolean;
   sourceId?: number | null;
   remoteId?: string | null;
+  previewUrl?: string | null;
   info: string | null;
   createdAt: string;
   updatedAt: string;

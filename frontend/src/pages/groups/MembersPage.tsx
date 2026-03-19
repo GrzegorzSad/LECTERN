@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/table";
+import { Loading } from "../../components/loading";
 import { Card } from "../../components/card";
 import {
   MoreHorizontal,
@@ -319,7 +320,7 @@ export function MembersPage() {
     getSortedRowModel: getSortedRowModel(),
   });
 
-  if (loading || membersLoading || userLoading) return <div>Loading...</div>;
+  if (loading || membersLoading || userLoading) return <Loading />;
   if (error || !group) return <div>Group not found</div>;
 
   return (

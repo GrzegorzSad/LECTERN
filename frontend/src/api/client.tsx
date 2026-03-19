@@ -6,7 +6,6 @@ import type {
   CreateChunksDto,
   CreateGroupDto,
   CreateMemberDto,
-  UpdateMemberRoleDto,
   ChunkSource,
   CreateChannelDto,
   CreateMessageDto,
@@ -19,7 +18,7 @@ import type {
   PrivateChat,
 } from "../types/types";
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+export const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -163,7 +162,10 @@ export const messagesApi = {
     }),
   listPrivate: (privateChatId: number) =>
     request<Message[]>(`/private-chats/${privateChatId}/messages`),
-  sendPrivate: (privateChatId: number, data: { content: string }) =>
+  sendPrivate: (
+    privateChatId: number,
+    data: { content: string; parentMessageId?: number },
+  ) =>
     request<{
       userMessage: Message;
       aiMessage: Message;

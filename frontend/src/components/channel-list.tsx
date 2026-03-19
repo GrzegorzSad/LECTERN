@@ -23,7 +23,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Lock,
-  Paintbrush,
+  Settings,
 } from "lucide-react";
 
 const COLORS = [
@@ -85,6 +85,8 @@ interface ChannelListProps {
   onDeletePrivateChat?: (chat: PrivateChat) => void;
   onRename?: (channel: Channel) => void;
   onRenamePrivateChat?: (chat: PrivateChat) => void;
+  onChannelSettings?: (channel: Channel) => void;
+  onPrivateChatSettings?: (chat: PrivateChat) => void;
   onColorChange?: (channel: Channel, color: string) => void;
   onPrivateChatColorChange?: (chat: PrivateChat, color: string) => void;
   onCreate?: () => void;
@@ -103,6 +105,8 @@ export function ChannelList({
   onRenamePrivateChat,
   onColorChange,
   onPrivateChatColorChange,
+  onChannelSettings,
+  onPrivateChatSettings,
   onCreate,
 }: ChannelListProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -158,12 +162,6 @@ export function ChannelList({
                           : "text-muted-foreground hover:bg-muted hover:text-foreground",
                       )}
                     >
-                      {color && (
-                        <span
-                          className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: color }}
-                        />
-                      )}
                       <span className="truncate">
                         {collapsed ? channel.name.slice(0, 1) : channel.name}
                       </span>
@@ -193,6 +191,12 @@ export function ChannelList({
                         <DropdownMenuItem onClick={() => onRename(channel)}>
                           <Pencil className="h-4 w-4 mr-2" />
                           Rename
+                        </DropdownMenuItem>
+                      )}
+                      {onChannelSettings && (
+                        <DropdownMenuItem onClick={() => onChannelSettings(channel)}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          Settings
                         </DropdownMenuItem>
                       )}
                       {onDelete && (
@@ -240,12 +244,13 @@ export function ChannelList({
                           style={isSelected && color ? { backgroundColor: color } : undefined}
                           className={cn(
                             "flex-1 flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors min-w-0",
+                          collapsed ? "justify-center" : "justify-start",
                             isSelected
                               ? color ? "text-white" : "bg-channel text-channel-foreground"
                               : "text-muted-foreground hover:bg-muted hover:text-foreground",
                           )}
                         >
-                          <Lock className="h-3 w-3 shrink-0" style={color ? { color } : undefined} />
+                          <Lock className="h-3 w-3 shrink-0 text-current" />
                           {!collapsed && (
                             <span className="truncate">{chat.name}</span>
                           )}
@@ -271,6 +276,12 @@ export function ChannelList({
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent side="right" align="start" className="w-48">
+                          {onPrivateChatSettings && (
+                            <DropdownMenuItem onClick={() => onPrivateChatSettings(chat)}>
+                              <Settings className="h-4 w-4 mr-2" />
+                              Settings
+                            </DropdownMenuItem>
+                          )}
                           {onRenamePrivateChat && (
                             <DropdownMenuItem onClick={() => onRenamePrivateChat(chat)}>
                               <Pencil className="h-4 w-4 mr-2" />

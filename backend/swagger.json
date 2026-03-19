@@ -961,6 +961,29 @@
         ]
       }
     },
+    "/documents/preview/{id}": {
+      "get": {
+        "operationId": "DocumentsController_previewDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "documents"
+        ]
+      }
+    },
     "/documents/{id}": {
       "delete": {
         "operationId": "DocumentsController_deleteDocument",
