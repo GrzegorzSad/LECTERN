@@ -12,6 +12,8 @@ dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
 
   const prisma = app.get(PrismaService);
   const store = new PrismaSessionStore(prisma);
