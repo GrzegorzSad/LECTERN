@@ -31,10 +31,12 @@ async function bootstrap() {
       resave: false,
       saveUninitialized: false,
       cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 365 * 1000,
-        secure: true,
-        sameSite: 'none',
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         httpOnly: true,
+        domain:
+          process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
       },
     }),
   );
