@@ -5,7 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import session from 'express-session';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
-import * as pgSession from 'connect-pg-simple';
+import pgSession from 'connect-pg-simple';
 
 dotenv.config();
 
