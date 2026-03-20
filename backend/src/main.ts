@@ -25,7 +25,11 @@ async function bootstrap() {
       secret: process.env.SESSION_SECRET || 'supersecret',
       resave: false,
       saveUninitialized: false,
-      cookie: { maxAge: 1000 * 60 * 60 * 24 * 365 * 1000 },
+      cookie: {
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 1000,
+        secure: true,
+        sameSite: 'none',
+      },
     }),
   );
 
