@@ -29,6 +29,7 @@ async function bootstrap() {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 1000,
         secure: true,
         sameSite: 'none',
+        httpOnly: true,
       },
     }),
   );
