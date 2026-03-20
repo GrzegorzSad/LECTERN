@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import session from 'express-session';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
+import * as pgSession from 'connect-pg-simple';
 
 dotenv.config();
 
@@ -19,14 +20,18 @@ async function bootstrap() {
     }),
   );
 
+  const PgStore = pgSession(session);
+
   app.use(
     session({
-      // store: //could import bits and specify smth here instead of deeper in the code,
+      store: new PgStore({
+        conString: process.env.DATABASE_URL,
+      }),
       secret: process.env.SESSION_SECRET || 'supersecret',
       resave: false,
       saveUninitialized: false,
       cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 365 * 1000,
+        maxAge: 1000 * 60 * 60 * 24 * 7,
         secure: true,
         sameSite: 'none',
         httpOnly: true,
