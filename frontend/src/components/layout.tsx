@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { GroupList } from "./group-list";
 import {
   NavigationMenu,

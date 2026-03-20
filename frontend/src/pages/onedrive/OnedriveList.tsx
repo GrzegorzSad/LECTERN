@@ -1,7 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { oneDriveApi, documentsApi, linkedAccountsApi } from "../../api/client";
-import { Card } from "../../components/card";
 import { Button } from "../../components/button";
 import { Loading } from "../../components/loading";
 import { SearchFilter } from "../../components/search-filter";
