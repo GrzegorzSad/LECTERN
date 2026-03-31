@@ -11,6 +11,7 @@ import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
 import { useSocket } from "../../hooks/useSocket";
 import { BookOpen, X, CornerUpLeft } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
 
 const formatTime = (iso: string) => {
   const date = new Date(iso);
@@ -532,7 +533,7 @@ export function ChatPage() {
                               : undefined
                         }
                       >
-                        {msg.content}
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
                       </div>
 
                       <div className="flex items-center gap-1.5 px-1 relative">

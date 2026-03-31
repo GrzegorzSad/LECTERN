@@ -40,7 +40,7 @@ export default function Home() {
         </p>
         <div className="flex gap-3 pt-2">
           {loggedIn ? (
-            <h3>Create or jaoin a group to get started</h3>
+            <h3>Create or join a group to get started</h3>
           ) : (
             <>
               <Button size="lg">
