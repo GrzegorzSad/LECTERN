@@ -22,6 +22,14 @@ import {
   DropdownMenuTrigger,
 } from "../../components/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "../../components/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -317,30 +325,6 @@ export function DataPage() {
         enableSorting: false,
         cell: ({ row }) => {
           const file = row.original;
-          const isConfirming = confirmId === file.id;
-
-          if (isConfirming) {
-            return (
-              <div className="flex items-center gap-1.5 justify-end">
-                <span className="text-xs text-muted-foreground">Delete?</span>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  disabled={deletingId === file.id}
-                  onClick={() => handleDelete(file)}
-                >
-                  {deletingId === file.id ? "..." : "Yes"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setConfirmId(null)}
-                >
-                  No
-                </Button>
-              </div>
-            );
-          }
 
           return (
             <div className="flex justify-end">
@@ -390,77 +374,104 @@ export function DataPage() {
   if (loading || filesLoading) return <Loading />;
   if (error || !group) return <div>Group not found</div>;
 
-  return (
-    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
-      {/* Toolbar */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1">
-          <SearchFilter
-            value={globalFilter}
-            onChange={setGlobalFilter}
-            placeholder="Search files or users..."
-          />
-        </div>
-        <Button size="lg" onClick={() => setAddDialogOpen(true)}>
-          + Add Data
-        </Button>
-      </div>
+  const confirmFile = confirmId ? files.find(f => f.id === confirmId) : null;
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-md border bg-background">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="group">
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
+  return (
+    <>
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
+        {/* Toolbar */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <SearchFilter
+              value={globalFilter}
+              onChange={setGlobalFilter}
+              placeholder="Search files or users..."
+            />
+          </div>
+          <Button size="lg" onClick={() => setAddDialogOpen(true)}>
+            + Add Data
+          </Button>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-hidden rounded-md border bg-background">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-20 text-center text-sm text-muted-foreground"
-                >
-                  {files.length === 0
-                    ? "No files yet — add files to get started."
-                    : `No files match "${globalFilter}"`}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id} className="group">
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-20 text-center text-sm text-muted-foreground"
+                  >
+                    {files.length === 0
+                      ? "No files yet — add files to get started."
+                      : `No files match "${globalFilter}"`}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {addDialogOpen && (
+          <AddDataDialog
+            groupId={group.id}
+            onClose={() => setAddDialogOpen(false)}
+          />
+        )}
       </div>
 
-      {addDialogOpen && (
-        <AddDataDialog
-          groupId={group.id}
-          onClose={() => setAddDialogOpen(false)}
-        />
-      )}
-    </div>
+      <AlertDialog open={!!confirmId} onOpenChange={(open) => !open && setConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Delete file?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {confirmFile ? `Delete "${confirmFile.name}"?` : "Delete this file?"}
+          </AlertDialogDescription>
+          <div className="flex gap-3 justify-end pt-4">
+            <AlertDialogCancel asChild>
+              <Button variant="outline">Cancel</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                disabled={deletingId !== null}
+                onClick={() => confirmFile && handleDelete(confirmFile)}
+              >
+                {deletingId !== null ? "..." : "Delete"}
+              </Button>
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

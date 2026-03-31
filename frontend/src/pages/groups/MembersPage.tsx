@@ -22,6 +22,14 @@ import {
   DropdownMenuTrigger,
 } from "../../components/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "../../components/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -215,36 +223,8 @@ export function MembersPage() {
           const showLeave = isCurrentUser && !isOwner;
           const showRoleToggle = isAdmin && !isCurrentUser && !isOwner;
           const showMenu = showKick || showLeave || showRoleToggle;
-          const isConfirming = confirmAction?.memberId === member.id;
 
           if (!showMenu) return null;
-
-          if (isConfirming) {
-            return (
-              <div className="flex items-center gap-1.5 justify-end">
-                <span className="text-xs text-muted-foreground">
-                  {confirmAction.type === "leave"
-                    ? "Leave group?"
-                    : "Remove member?"}
-                </span>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  disabled={actingId === member.id}
-                  onClick={handleConfirmedAction}
-                >
-                  {actingId === member.id ? "..." : "Yes"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setConfirmAction(null)}
-                >
-                  No
-                </Button>
-              </div>
-            );
-          }
 
           return (
             <div className="flex justify-end">
@@ -323,77 +303,110 @@ export function MembersPage() {
   if (loading || membersLoading || userLoading) return <Loading />;
   if (error || !group) return <div>Group not found</div>;
 
+  const confirmMember = confirmAction
+    ? members.find((m) => m.id === confirmAction.memberId)
+    : null;
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
-      <div className="flex items-center gap-2">
-        <div className="flex-1">
-          <SearchFilter
-            value={globalFilter}
-            onChange={setGlobalFilter}
-            placeholder="Search members..."
-          />
-        </div>
-        <Button size="lg" onClick={handleGenerateInvite} disabled={generating}>
-          {generating ? "Generating..." : "+ Invite"}
-        </Button>
-      </div>
-
-      {inviteLink && (
-        <Card className="px-4 py-3 flex items-center gap-3">
-          <p className="text-sm text-muted-foreground truncate flex-1">
-            {inviteLink}
-          </p>
-          <Button size="sm" variant="outline" onClick={handleCopy}>
-            {copied ? "Copied ✓" : "Copy"}
+    <>
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <SearchFilter
+              value={globalFilter}
+              onChange={setGlobalFilter}
+              placeholder="Search members..."
+            />
+          </div>
+          <Button size="lg" onClick={handleGenerateInvite} disabled={generating}>
+            {generating ? "Generating..." : "+ Invite"}
           </Button>
-        </Card>
-      )}
+        </div>
 
-      <div className="overflow-hidden rounded-md border bg-background">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
+        {inviteLink && (
+          <Card className="px-4 py-3 flex items-center gap-3">
+            <p className="text-sm text-muted-foreground truncate flex-1">
+              {inviteLink}
+            </p>
+            <Button size="sm" variant="outline" onClick={handleCopy}>
+              {copied ? "Copied ✓" : "Copy"}
+            </Button>
+          </Card>
+        )}
+
+        <div className="overflow-hidden rounded-md border bg-background">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-20 text-center text-sm text-muted-foreground"
-                >
-                  No members match &quot;{globalFilter}&quot;
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-20 text-center text-sm text-muted-foreground"
+                  >
+                    No members match &quot;{globalFilter}&quot;
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
-    </div>
+
+      <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogTitle>
+            {confirmAction?.type === "leave" ? "Leave group?" : "Remove member?"}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {confirmAction?.type === "leave"
+              ? "You will no longer have access to this group and its messages."
+              : `Remove ${confirmMember?.user?.name || "this member"} from the group?`}
+          </AlertDialogDescription>
+          <div className="flex gap-3 justify-end pt-4">
+            <AlertDialogCancel asChild>
+              <Button variant="outline">Cancel</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                disabled={actingId !== null}
+                onClick={handleConfirmedAction}
+              >
+                {actingId !== null ? "..." : "Confirm"}
+              </Button>
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

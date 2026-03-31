@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./button";
 import {
@@ -54,7 +53,9 @@ function ColorPicker({
           onClick={() => onChange("")}
           className={cn(
             "w-5 h-5 rounded-full border-2 border-dashed transition-transform hover:scale-110",
-            !current ? "border-foreground scale-110" : "border-muted-foreground",
+            !current
+              ? "border-foreground scale-110"
+              : "border-muted-foreground",
           )}
           title="Default"
         />
@@ -64,7 +65,9 @@ function ColorPicker({
             onClick={() => onChange(c)}
             className={cn(
               "w-5 h-5 rounded-full transition-transform hover:scale-110",
-              current === c ? "scale-125 ring-2 ring-offset-1 ring-foreground" : "",
+              current === c
+                ? "scale-125 ring-2 ring-offset-1 ring-foreground"
+                : "",
             )}
             style={{ backgroundColor: c }}
           />
@@ -79,6 +82,8 @@ interface ChannelListProps {
   privateChats: PrivateChat[];
   selectedId?: number;
   selectedPrivateChatId?: number;
+  collapsed?: boolean;
+  onCollapse?: (v: boolean) => void;
   onSelect: (channel: Channel) => void;
   onSelectPrivateChat: (chat: PrivateChat) => void;
   onDelete?: (channel: Channel) => void;
@@ -108,8 +113,9 @@ export function ChannelList({
   onChannelSettings,
   onPrivateChatSettings,
   onCreate,
+  collapsed = false,
+  onCollapse,
 }: ChannelListProps) {
-  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -132,8 +138,8 @@ export function ChannelList({
             </h1>
           )}
           <button
-            onClick={() => setCollapsed((v) => !v)}
-            className="text-muted-foreground hover:text-foreground transition-colors px-1 rounded"
+            onClick={() => onCollapse?.(!collapsed)}
+            className="text-muted-foreground md:block  hover:text-foreground transition-colors px-1 rounded"
           >
             {collapsed ? (
               <PanelLeftOpen className="h-4 w-4" />
@@ -149,16 +155,25 @@ export function ChannelList({
             const color = channel.color || null;
             const isSelected = selectedId === channel.id;
             return (
-              <div key={channel.id} className="group relative flex items-center">
+              <div
+                key={channel.id}
+                className="group relative flex items-center"
+              >
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => onSelect(channel)}
-                      style={isSelected && color ? { backgroundColor: color } : undefined}
+                      style={
+                        isSelected && color
+                          ? { backgroundColor: color }
+                          : undefined
+                      }
                       className={cn(
                         "flex-1 flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors min-w-0",
                         isSelected
-                          ? color ? "text-white" : "bg-channel text-channel-foreground"
+                          ? color
+                            ? "text-white"
+                            : "bg-channel text-channel-foreground"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground",
                       )}
                     >
@@ -177,16 +192,22 @@ export function ChannelList({
                     <DropdownMenuTrigger asChild>
                       <button
                         className={cn(
-                          "absolute right-1 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity",
+                          "absolute right-1 p-1 rounded opacity-100 md:opacity-0 group-hover:md:opacity-100 transition-opacity",
                           isSelected
-                            ? color ? "text-white hover:bg-white/20" : "text-channel-foreground hover:bg-channel/80"
+                            ? color
+                              ? "text-white hover:bg-white/20"
+                              : "text-channel-foreground hover:bg-channel/80"
                             : "text-muted-foreground hover:bg-muted",
                         )}
                       >
                         <MoreHorizontal className="h-3 w-3" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start" className="w-48">
+                    <DropdownMenuContent
+                      side="right"
+                      align="start"
+                      className="w-48"
+                    >
                       {onRename && (
                         <DropdownMenuItem onClick={() => onRename(channel)}>
                           <Pencil className="h-4 w-4 mr-2" />
@@ -194,7 +215,9 @@ export function ChannelList({
                         </DropdownMenuItem>
                       )}
                       {onChannelSettings && (
-                        <DropdownMenuItem onClick={() => onChannelSettings(channel)}>
+                        <DropdownMenuItem
+                          onClick={() => onChannelSettings(channel)}
+                        >
                           <Settings className="h-4 w-4 mr-2" />
                           Settings
                         </DropdownMenuItem>
@@ -236,17 +259,26 @@ export function ChannelList({
                 const color = chat.color || null;
                 const isSelected = selectedPrivateChatId === chat.id;
                 return (
-                  <div key={chat.id} className="group relative flex items-center">
+                  <div
+                    key={chat.id}
+                    className="group relative flex items-center"
+                  >
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
                           onClick={() => onSelectPrivateChat(chat)}
-                          style={isSelected && color ? { backgroundColor: color } : undefined}
+                          style={
+                            isSelected && color
+                              ? { backgroundColor: color }
+                              : undefined
+                          }
                           className={cn(
                             "flex-1 flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors min-w-0",
-                          collapsed ? "justify-center" : "justify-start",
+                            collapsed ? "justify-center" : "justify-start",
                             isSelected
-                              ? color ? "text-white" : "bg-channel text-channel-foreground"
+                              ? color
+                                ? "text-white"
+                                : "bg-channel text-channel-foreground"
                               : "text-muted-foreground hover:bg-muted hover:text-foreground",
                           )}
                         >
@@ -257,58 +289,75 @@ export function ChannelList({
                         </button>
                       </TooltipTrigger>
                       {collapsed && (
-                        <TooltipContent side="right">{chat.name}</TooltipContent>
+                        <TooltipContent side="right">
+                          {chat.name}
+                        </TooltipContent>
                       )}
                     </Tooltip>
 
-                    {!collapsed && (onRenamePrivateChat || onDeletePrivateChat || onPrivateChatColorChange) && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            className={cn(
-                              "absolute right-1 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity",
-                              isSelected
-                                ? color ? "text-white hover:bg-white/20" : "text-channel-foreground hover:bg-channel/80"
-                                : "text-muted-foreground hover:bg-muted",
-                            )}
-                          >
-                            <MoreHorizontal className="h-3 w-3" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent side="right" align="start" className="w-48">
-                          {onPrivateChatSettings && (
-                            <DropdownMenuItem onClick={() => onPrivateChatSettings(chat)}>
-                              <Settings className="h-4 w-4 mr-2" />
-                              Settings
-                            </DropdownMenuItem>
-                          )}
-                          {onRenamePrivateChat && (
-                            <DropdownMenuItem onClick={() => onRenamePrivateChat(chat)}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Rename
-                            </DropdownMenuItem>
-                          )}
-                          {onDeletePrivateChat && (
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => onDeletePrivateChat(chat)}
+                    {!collapsed &&
+                      (onRenamePrivateChat ||
+                        onDeletePrivateChat ||
+                        onPrivateChatColorChange) && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className={cn(
+                                "absolute right-1 p-1 rounded opacity-100 md:opacity-0 group-hover:md:opacity-100 transition-opacity",
+                                isSelected
+                                  ? color
+                                    ? "text-white hover:bg-white/20"
+                                    : "text-channel-foreground hover:bg-channel/80"
+                                  : "text-muted-foreground hover:bg-muted",
+                              )}
                             >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          )}
-                          {onPrivateChatColorChange && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <ColorPicker
-                                current={chat.color}
-                                onChange={(c) => onPrivateChatColorChange(chat, c)}
-                              />
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+                              <MoreHorizontal className="h-3 w-3" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            side="right"
+                            align="start"
+                            className="w-48"
+                          >
+                            {onPrivateChatSettings && (
+                              <DropdownMenuItem
+                                onClick={() => onPrivateChatSettings(chat)}
+                              >
+                                <Settings className="h-4 w-4 mr-2" />
+                                Settings
+                              </DropdownMenuItem>
+                            )}
+                            {onRenamePrivateChat && (
+                              <DropdownMenuItem
+                                onClick={() => onRenamePrivateChat(chat)}
+                              >
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                            )}
+                            {onDeletePrivateChat && (
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => onDeletePrivateChat(chat)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            )}
+                            {onPrivateChatColorChange && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <ColorPicker
+                                  current={chat.color}
+                                  onChange={(c) =>
+                                    onPrivateChatColorChange(chat, c)
+                                  }
+                                />
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                   </div>
                 );
               })}
