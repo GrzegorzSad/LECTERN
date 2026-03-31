@@ -1,0 +1,9 @@
+services:
+  - type: static
+    name: lectern-frontend
+    rootDir: frontend
+    buildCommand: npm run build
+    publishPath: dist
+    routes:
+      - path: /*
+        destination: /index.html
