@@ -6,18 +6,20 @@ A platform Designed to let users create groups, chat to each other, upload files
 
 The uploaded data is proccessed in a RAG (reseacrh augmented generation) pipeline and stored as vectors, that are later retrieved and used as context to answer questions.
 
-![upload](image.png)
+![general img](imgs/image-8.png)
 
-![data](image-1.png)
+![upload](imgs/image.png)
 
-![members](image-2.png)
+![data](imgs/image-1.png)
 
-![new channel](image-3.png)
+![members](imgs/image-2.png)
 
-![question](image-4.png)
+![new channel](imgs/image-3.png)
 
-![sources](image-5.png)
+![question](imgs/image-4.png)
 
-![settings](image-6.png)
+![sources](imgs/image-5.png)
 
-![all caps](image-7.png)
+![settings](imgs/image-6.png)
+
+![all caps](imgs/image-7.png)
