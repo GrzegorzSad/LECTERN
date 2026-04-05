@@ -169,6 +169,7 @@ export function ChatPage() {
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const [pinnedPopoverOpen, setPinnedPopoverOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const skipScrollRef = useRef(false);
 
   const pinnedMessages = messages.filter((m) => m.isPinned);
 
@@ -217,6 +218,10 @@ export function ChatPage() {
   }, [selectedChannel, selectedPrivateChat, userLoading]);
 
   useEffect(() => {
+    if (skipScrollRef.current) {
+      skipScrollRef.current = false;
+      return;
+    }
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -332,6 +337,7 @@ export function ChatPage() {
       } else {
         return;
       }
+      skipScrollRef.current = true;
       setMessages((prev) => prev.map((m) => (m.id === updated.id ? { ...m, isPinned: updated.isPinned } : m)));
     } catch (err) {
       console.error("Pin failed:", err);
@@ -489,7 +495,7 @@ export function ChatPage() {
                   <button
                     onClick={() => setPinnedPopoverOpen((o) => !o)}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                      "flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium transition-colors",
                       pinnedPopoverOpen
                         ? "bg-muted text-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
