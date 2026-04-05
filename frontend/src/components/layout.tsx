@@ -7,7 +7,6 @@ import {
   navigationMenuTriggerStyle,
 } from "./navigation-menu";
 import { Link } from "react-router-dom";
-import { useDarkMode } from "../hooks/useDarkMode";
 import {
   NavbarCenterProvider,
   useNavbarCenter,
@@ -23,7 +22,6 @@ interface LayoutProps {
 }
 
 const LayoutInner = ({ showGroup = true }: LayoutProps) => {
-  const { isDark, toggle } = useDarkMode();
   const { center, title } = useNavbarCenter();
   const { loggedIn, user, userLoading } = useAuth();
   const { groups } = useGroups();
@@ -68,23 +66,14 @@ const LayoutInner = ({ showGroup = true }: LayoutProps) => {
                     </>
                   )}
                   {!userLoading && loggedIn && user && (
-                    <NavigationMenuItem className="max-w-10 overflow-hidden md:max-w-none"> 
+                    <NavigationMenuItem className="max-w-25 overflow-hidden md:max-w-none"> 
                       <NavigationMenuLink
                         className={navigationMenuTriggerStyle()}
                       >
-                        <Link to={`/user/${user.id}`}>{user.name}</Link>
+                        <Link to="/user">{user.name}</Link>
                       </NavigationMenuLink>
                     </NavigationMenuItem>
                   )}
-                  <NavigationMenuItem>
-                    <NavigationMenuLink
-                      className={navigationMenuTriggerStyle()}
-                      onClick={toggle}
-                      style={{ cursor: "pointer" }}
-                    >
-                      {isDark ? "☀️" : "🌙"}
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
                 </NavigationMenuList>
               </NavigationMenu>
             </div>

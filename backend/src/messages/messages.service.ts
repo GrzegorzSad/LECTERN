@@ -212,5 +212,27 @@ export class MessagesService {
       },
     });
   }
+
+  async pinPrivateMessage(messageId: number, userId: number) {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      include: { privateChat: true },
+    });
+    if (!message) throw new NotFoundException('Message not found');
+    if (!message.privateChat)
+      throw new ForbiddenException('Not a private chat message');
+
+    if (message.privateChat.userId !== userId) {
+      throw new ForbiddenException(
+        'Only the private chat owner can pin messages',
+      );
+    }
+
+    return this.prisma.message.update({
+      where: { id: messageId },
+      data: { isPinned: !message.isPinned },
+      include: { user: { select: { id: true, name: true } } },
+    });
+  }
   
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, ParseIntPipe, UseGuards, Req, Patch } from '@nestjs/common';
 import { MessagesService } from '../messages/messages.service';
 import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
 import type { Request } from 'express';
@@ -32,5 +32,15 @@ export class PrivateChatMessagesController {
       privateChatId,
       req.session.user!.id,
     );
+  }
+
+  @UseGuards(SessionAuthGuard)
+  @Patch(':messageId/pin')
+  pin(
+    @Param('privateChatId', ParseIntPipe) privateChatId: number,
+    @Param('messageId', ParseIntPipe) messageId: number,
+    @Req() req: Request,
+  ) {
+    return this.messagesService.pinPrivateMessage(messageId, req.session.user!.id);
   }
 }

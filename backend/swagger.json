@@ -687,6 +687,37 @@
         ]
       }
     },
+    "/private-chats/{privateChatId}/messages/{messageId}/pin": {
+      "patch": {
+        "operationId": "PrivateChatMessagesController_pin",
+        "parameters": [
+          {
+            "name": "privateChatId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PrivateChatMessages"
+        ]
+      }
+    },
     "/users": {
       "get": {
         "operationId": "UsersController_findAll",

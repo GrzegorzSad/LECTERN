@@ -15,7 +15,7 @@ import { ChannelList } from "../../components/channel-list";
 import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
 import { useSocket } from "../../hooks/useSocket";
-import { BookOpen, X, CornerUpLeft, PanelLeftOpen } from "lucide-react";
+import { BookOpen, X, CornerUpLeft, PanelLeftOpen, Pin } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import {
   Sheet,
@@ -30,10 +30,7 @@ const formatTime = (iso: string) => {
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
   const isYesterday = date.toDateString() === yesterday.toDateString();
-  const time = date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const time = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
   if (isToday) return time;
   if (isYesterday) return `Yesterday ${time}`;
   return `${date.toLocaleDateString(undefined, { day: "numeric", month: "short" })} ${time}`;
@@ -75,6 +72,78 @@ function SourcesPopover({ sources, onClose }: { sources: Source[]; onClose: () =
   );
 }
 
+interface PinnedMessagesPopoverProps {
+  pinnedMessages: Message[];
+  canUnpin: boolean;
+  onUnpin: (msg: Message) => void;
+  onScrollTo: (id: number) => void;
+  onClose: () => void;
+  activeColor: string | null;
+}
+
+function PinnedMessagesPopover({
+  pinnedMessages,
+  canUnpin,
+  onUnpin,
+  onScrollTo,
+  onClose,
+  activeColor,
+}: PinnedMessagesPopoverProps) {
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-10" onClick={onClose} />
+      <div className="absolute top-full mt-1 right-0 z-20 w-80 rounded-lg border bg-background shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2 border-b">
+          <div className="flex items-center gap-1.5">
+            <Pin
+              className="h-3.5 w-3.5 fill-current"
+              style={{ color: activeColor ?? "hsl(var(--primary))" }}
+            />
+            <span className="text-xs font-semibold">Pinned Messages</span>
+            <span className="text-xs text-muted-foreground">({pinnedMessages.length})</span>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="divide-y max-h-72 overflow-y-auto">
+          {pinnedMessages.map((msg) => (
+            <div key={msg.id} className="px-3 py-2.5 hover:bg-muted/20 transition-colors group">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-xs font-medium text-foreground">
+                      {msg.isAi ? "AI" : (msg.user?.name ?? `User #${msg.userId}`)}
+                    </span>
+                    <span className="text-xs text-muted-foreground/60">{formatTime(msg.createdAt)}</span>
+                  </div>
+                  <button
+                    onClick={() => { onScrollTo(msg.id); onClose(); }}
+                    className="text-xs text-muted-foreground text-left hover:text-foreground transition-colors line-clamp-2 w-full"
+                    title="Jump to message"
+                  >
+                    {msg.content.length > 120 ? `${msg.content.slice(0, 120)}...` : msg.content}
+                  </button>
+                </div>
+                {canUnpin && (
+                  <button
+                    onClick={() => onUnpin(msg)}
+                    className="shrink-0 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                    title="Unpin message"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function ChatPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -98,7 +167,10 @@ export function ChatPage() {
   const [sourceMap, setSourceMap] = useState<SourceMap>({});
   const [openSourceMsgId, setOpenSourceMsgId] = useState<number | null>(null);
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
+  const [pinnedPopoverOpen, setPinnedPopoverOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const pinnedMessages = messages.filter((m) => m.isPinned);
 
   const scrollToMessage = (messageId: number | null) => {
     if (!messageId) return;
@@ -141,6 +213,7 @@ export function ChatPage() {
       setMessages([]);
       messagesApi.listPrivate(selectedPrivateChat.id).then(setMessages).finally(() => setMessagesLoading(false));
     }
+    setPinnedPopoverOpen(false);
   }, [selectedChannel, selectedPrivateChat, userLoading]);
 
   useEffect(() => {
@@ -249,6 +322,22 @@ export function ChatPage() {
     if (selectedPrivateChat?.id === updated.id) setSelectedPrivateChat(updated);
   };
 
+  const handlePinMessage = async (msg: Message) => {
+    try {
+      let updated: Message;
+      if (selectedChannel) {
+        updated = await messagesApi.pin(selectedChannel.id, msg.id);
+      } else if (selectedPrivateChat) {
+        updated = await messagesApi.pinPrivate(selectedPrivateChat.id, msg.id);
+      } else {
+        return;
+      }
+      setMessages((prev) => prev.map((m) => (m.id === updated.id ? { ...m, isPinned: updated.isPinned } : m)));
+    } catch (err) {
+      console.error("Pin failed:", err);
+    }
+  };
+
   const handleAsk = async (noAi = false) => {
     if (!question.trim() || (!selectedChannel && !selectedPrivateChat)) return;
     const content = question.trim();
@@ -319,6 +408,12 @@ export function ChatPage() {
     return "other";
   };
 
+  const canPin = (_msg: Message) => {
+    if (selectedChannel) return isAdmin;
+    if (selectedPrivateChat) return true;
+    return false;
+  };
+
   const channelListProps = {
     channels,
     privateChats,
@@ -351,8 +446,8 @@ export function ChatPage() {
   return (
     <div className="flex h-full overflow-hidden">
 
-      {/* Desktop channel list - hidden on mobile */}
-      <div className="hidden md:flex md:flex-col ">
+      {/* Desktop channel list */}
+      <div className="hidden md:flex md:flex-col">
         <ChannelList
           {...channelListProps}
           collapsed={channelListCollapsed}
@@ -366,7 +461,7 @@ export function ChatPage() {
           <>
             {/* Header */}
             <div className="flex items-center gap-2 px-2 py-1 shrink-0">
-              {/* Mobile: sheet trigger */}
+              {/* Mobile sheet trigger */}
               <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
                 <SheetTrigger asChild>
                   <button className="md:hidden p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
@@ -374,7 +469,7 @@ export function ChatPage() {
                   </button>
                 </SheetTrigger>
                 <SheetContent showCloseButton={false} side="left" className="w-52 pt-3">
-                  <ChannelList 
+                  <ChannelList
                     {...channelListProps}
                     onCollapse={() => setMobileSheetOpen(false)}
                   />
@@ -387,6 +482,39 @@ export function ChatPage() {
                 )}
                 # {activeName}
               </span>
+
+              {/* Pinned messages indicator — only when there are pinned messages */}
+              {pinnedMessages.length > 0 && (
+                <div className="relative ml-auto">
+                  <button
+                    onClick={() => setPinnedPopoverOpen((o) => !o)}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                      pinnedPopoverOpen
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    )}
+                    title="View pinned messages"
+                  >
+                    <Pin
+                      className="h-3.5 w-3.5 fill-current"
+                      style={{ color: activeColor ?? undefined }}
+                    />
+                    <span>{pinnedMessages.length}</span>
+                  </button>
+
+                  {pinnedPopoverOpen && (
+                    <PinnedMessagesPopover
+                      pinnedMessages={pinnedMessages}
+                      canUnpin={canPin(pinnedMessages[0])}
+                      onUnpin={handlePinMessage}
+                      onScrollTo={scrollToMessage}
+                      onClose={() => setPinnedPopoverOpen(false)}
+                      activeColor={activeColor}
+                    />
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Messages */}
@@ -472,6 +600,20 @@ export function ChatPage() {
                           <CornerUpLeft className="h-3 w-3" />
                           <span>Reply</span>
                         </button>
+                        {canPin(msg) && (
+                          <button
+                            onClick={() => handlePinMessage(msg)}
+                            className={cn(
+                              "text-xs transition-colors flex items-center gap-1",
+                              msg.isPinned
+                                ? "text-primary"
+                                : "text-muted-foreground hover:text-primary"
+                            )}
+                            title={msg.isPinned ? "Unpin message" : "Pin message"}
+                          >
+                            <Pin className={cn("h-3 w-3", msg.isPinned && "fill-current")} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

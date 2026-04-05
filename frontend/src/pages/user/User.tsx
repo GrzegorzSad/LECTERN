@@ -8,6 +8,7 @@ import {
   groupsApi,
 } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import { useDarkMode } from "../../hooks/useDarkMode";
 import type { PrivateChat, Group } from "../../types/types";
 import { Button } from "../../components/button";
 import { Input } from "../../components/input";
@@ -209,6 +210,7 @@ interface GroupWithChats {
 export function UserPage() {
   const { user, setUser, userLoading } = useAuth();
   const navigate = useNavigate();
+  const { isDark, toggle: toggleDarkMode } = useDarkMode();
 
   const [accounts, setAccounts] = useState<LinkedAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
@@ -459,6 +461,15 @@ export function UserPage() {
         </div>
 
         <div className="px-4 pt-2 pb-1 divide-y divide-border">
+          {/* Dark mode toggle — collapsible */}
+          <CollapsibleRow label="Dark Mode">
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-sm">{isDark ? "☀️ Light" : "🌙 Dark"}</span>
+              <Button size="sm" variant="outline" onClick={toggleDarkMode}>
+                {isDark ? "Switch to Light" : "Switch to Dark"}
+              </Button>
+            </div>
+          </CollapsibleRow>
           {/* Display name — collapsible */}
           <CollapsibleRow label="Display Name">
             <div className="flex gap-2 pt-1">

@@ -53,7 +53,7 @@ export const router = createBrowserRouter([
         ],
       },
       { path: "join/:token", element: <JoinPage /> },
-      { path: "user/:id", element: <RequireAuth><UserPage /></RequireAuth> },
+      { path: "user", element: <RequireAuth><UserPage /></RequireAuth> },
       { path: "linked-accounts", element: <RequireAuth><LinkedAccountsPage /></RequireAuth> },
     ],
   },

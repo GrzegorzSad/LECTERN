@@ -174,6 +174,11 @@ export const messagesApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  // NEW: pin a message in a private chat
+  pinPrivate: (privateChatId: number, messageId: number) =>
+    request<Message>(`/private-chats/${privateChatId}/messages/${messageId}/pin`, {
+      method: "PATCH",
+    }),
 };
 
 // --- Private Chats ---

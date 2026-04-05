@@ -294,7 +294,7 @@ export function OneDriveListPage() {
               Connect your Microsoft account to browse and add files from OneDrive.
             </p>
             <Button>
-              <Link to={`/user/${user?.id}`}>Link OneDrive</Link>
+              <Link to="/user">Link OneDrive</Link>
             </Button>
           </div>
         </div>
