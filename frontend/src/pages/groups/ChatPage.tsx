@@ -114,7 +114,7 @@ function PinnedMessagesPopover({
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 z-10" onClick={onClose} />
-      <div className="absolute top-full mt-1 right-0 z-20 w-80 rounded-lg border bg-background shadow-xl overflow-hidden">
+      <div className="absolute top-full mt-1 right-0 z-60 w-80 rounded-lg border bg-background shadow-xl overflow-hidden">
         <div className="flex items-center justify-between px-3 py-2 border-b">
           <div className="flex items-center gap-1.5">
             <Pin
