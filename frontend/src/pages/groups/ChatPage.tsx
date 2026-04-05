@@ -661,20 +661,6 @@ export function ChatPage() {
                     <span>{pinnedMessages.length}</span>
                   </button>
 
-                  <button
-                    onClick={() => setNotesOpen((o) => !o)}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors",
-                      notesOpen
-                        ? "bg-muted text-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                    )}
-                    title="Open notes"
-                  >
-                    <PanelRight className="h-3.5 w-3.5" />
-                    <span className="">Notes</span>
-                  </button>
-
                   {pinnedPopoverOpen && (
                     <PinnedMessagesPopover
                       pinnedMessages={pinnedMessages}
@@ -687,12 +673,30 @@ export function ChatPage() {
                   )}
                 </div>
               )}
+
+              {pinnedMessages.length < 1 && (
+                <div className="ml-auto" />
+              )}
+
+              <button
+                onClick={() => setNotesOpen((o) => !o)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                  notesOpen
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                )}
+                title="Open notes"
+              >
+                <PanelRight className="h-3.5 w-3.5" />
+                <span className="">Notes</span>
+              </button>
             </div>
 
             {/* Messages */}
             <div className="flex overflow-hidden h-full relative">
               <div className="flex-1 overflow-y-auto overflow-y-auto">
-                <div className="max-w-2xl mx-auto px-4 pt-4 pb-28 flex flex-col gap-4">
+                <div className="max-w-2xl mx-auto px-4 pt-4 flex flex-col gap-4 min-h-full">
                   {messagesLoading && (
                     <p className="text-muted-foreground text-sm">
                       Loading messages...
