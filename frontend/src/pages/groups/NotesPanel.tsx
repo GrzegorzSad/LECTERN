@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, FileText, Upload, CheckCircle2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { BASE_URL } from "../../api/client";
@@ -11,12 +11,28 @@ interface NotesPanelProps {
 
 type UploadState = "idle" | "uploading" | "done" | "error";
 
+const NOTE_CACHE_KEY = "notes-panel-cache";
+
 export function NotesPanel({ open, onClose, groupId }: NotesPanelProps) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [title, setTitle] = useState(() => {
+    const cached = localStorage.getItem(`${NOTE_CACHE_KEY}-title-${groupId}`);
+    return cached || "";
+  });
+  const [content, setContent] = useState(() => {
+    const cached = localStorage.getItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
+    return cached || "";
+  });
   const [uploadState, setUploadState] = useState<UploadState>("idle");
 
   const isEmpty = !content.trim();
+
+  useEffect(() => {
+    localStorage.setItem(`${NOTE_CACHE_KEY}-title-${groupId}`, title);
+  }, [title, groupId]);
+
+  useEffect(() => {
+    localStorage.setItem(`${NOTE_CACHE_KEY}-content-${groupId}`, content);
+  }, [content, groupId]);
 
   const handleAddAsSource = async () => {
     if (isEmpty) return;
@@ -40,6 +56,8 @@ export function NotesPanel({ open, onClose, groupId }: NotesPanelProps) {
       setTimeout(() => {
         setTitle("");
         setContent("");
+        localStorage.removeItem(`${NOTE_CACHE_KEY}-title-${groupId}`);
+        localStorage.removeItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
         setUploadState("idle");
       }, 2000);
     } catch {
@@ -94,21 +112,19 @@ export function NotesPanel({ open, onClose, groupId }: NotesPanelProps) {
           {uploadState === "done"
             ? "Added to group sources ✓"
             : uploadState === "error"
-              ? "Upload failed — try again"
-              : "Uploads the note as a searchable document"}
+            ? "Upload failed — try again"
+            : "Uploads the note as a searchable document"}
         </p>
         <button
           onClick={handleAddAsSource}
-          disabled={
-            isEmpty || uploadState === "uploading" || uploadState === "done"
-          }
+          disabled={isEmpty || uploadState === "uploading" || uploadState === "done"}
           className={cn(
             "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors shrink-0",
             uploadState === "done"
               ? "bg-green-500/15 text-green-600"
               : isEmpty || uploadState === "uploading"
-                ? "bg-muted text-muted-foreground cursor-not-allowed"
-                : "bg-primary text-primary-foreground hover:bg-primary/90",
+              ? "bg-muted text-muted-foreground cursor-not-allowed"
+              : "bg-primary text-primary-foreground hover:bg-primary/90",
           )}
         >
           {uploadState === "done" ? (

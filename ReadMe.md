@@ -32,3 +32,9 @@ we can also do custom settings
 ![settings](imgs/image-6.png)
 
 ![all caps](imgs/image-7.png)
+
+Note Taking
+![alt text](image.png)
+
+Using Notes as sources
+![alt text](image-1.png)
