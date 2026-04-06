@@ -5,7 +5,6 @@ import { Button } from "../../components/button";
 import { Loading } from "../../components/loading";
 import { SearchFilter } from "../../components/search-filter";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
 
 interface OneDriveItem {
   id: string;
