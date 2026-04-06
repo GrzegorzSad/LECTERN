@@ -234,7 +234,6 @@ export function OneDriveListPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [hasOneDrive, setHasOneDrive] = useState<boolean | null>(null);
-  const { user } = useAuth();
 
   useEffect(() => {
     linkedAccountsApi
