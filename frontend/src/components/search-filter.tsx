@@ -15,7 +15,7 @@ export function SearchFilter({ value, onChange, placeholder = "Search..." }: Sea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="pl-9 bg-background"
+        className="pl-9 bg-popover shadow-sm"
       />
     </div>
   );

@@ -309,7 +309,7 @@ export function MembersPage() {
 
   return (
     <>
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
+      <div className="max-w-2xl mx-auto pt-2 space-y-3">
         <div className="flex items-center gap-2">
           <div className="flex-1">
             <SearchFilter
@@ -324,8 +324,8 @@ export function MembersPage() {
         </div>
 
         {inviteLink && (
-          <Card className="px-4 py-3 flex items-center gap-3">
-            <p className="text-sm text-muted-foreground truncate flex-1">
+          <Card className="px-4 py-3 flex items-center gap-3 bg-popover shadow-sm">
+            <p className="text-sm text-foreground truncate flex-1">
               {inviteLink}
             </p>
             <Button size="sm" variant="outline" onClick={handleCopy}>
@@ -334,7 +334,7 @@ export function MembersPage() {
           </Card>
         )}
 
-        <div className="overflow-hidden rounded-md border bg-background">
+        <div className="overflow-hidden rounded-md border bg-popover shadow-sm">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (

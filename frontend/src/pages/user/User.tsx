@@ -67,7 +67,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-md border bg-background">
+    <div className="overflow-hidden rounded-md border bg-popover shadow-sm">
       <div className="px-4 py-3 border-b">
         <p className="text-sm font-medium">{title}</p>
         {description && (
@@ -183,7 +183,7 @@ function AiSettingsForm({
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Add extra instructions for the AI..."
-          className="w-full text-sm border rounded-md px-3 py-2 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full text-sm border rounded-md px-3 py-2 bg-popover shadow-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
           rows={3}
         />
       </div>
@@ -367,9 +367,9 @@ export function UserPage() {
   if (!user) return null;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
+    <div className="max-w-2xl mx-auto pt-2 pb-6 space-y-3">
       {/* Profile header */}
-      <div className="overflow-hidden rounded-md border bg-background">
+      <div className="overflow-hidden rounded-md border bg-popover shadow-sm">
         <div className="flex items-center justify-between px-4 py-3">
           <div>
             <p className="text-sm font-semibold">{user.name}</p>
@@ -383,7 +383,7 @@ export function UserPage() {
       </div>
 
       {/* Linked accounts */}
-      <div className="overflow-hidden rounded-md border bg-background">
+      <div className="overflow-hidden rounded-md border bg-popover shadow-sm">
         <div className="px-4 py-3 border-b">
           <p className="text-sm font-medium">Linked Accounts</p>
         </div>
@@ -455,7 +455,7 @@ export function UserPage() {
       </div>
 
       {/* Account */}
-      <div className="overflow-hidden rounded-md border bg-background">
+      <div className="overflow-hidden rounded-md border bg-popover shadow-sm">
         <div className="px-4 py-3 border-b">
           <p className="text-sm font-medium">Account Settings</p>
         </div>
@@ -558,7 +558,7 @@ export function UserPage() {
 
       {/* Private chat AI settings */}
       {!chatsLoading && groupsWithChats.length > 0 && (
-        <div className="overflow-hidden rounded-md border bg-background">
+        <div className="overflow-hidden rounded-md border bg-popover shadow-sm">
           <div className="px-4 py-3 border-b">
             <p className="text-sm font-medium">Private Chat AI Settings</p>
             <p className="text-xs text-muted-foreground mt-0.5">

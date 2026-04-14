@@ -143,6 +143,7 @@
 }
 
 .dark {
+  
   --channel: oklch(79.456% 0.12526 198.869);
 
   --channel-foreground: oklch(0.15 0.02 60);
@@ -155,7 +156,7 @@
 
   --card-foreground: oklch(0.985 0.002 247.839);
 
-  --popover: oklch(0.21 0.034 264.665);
+  --popover: oklch(25.347% 0.01139 278.049);
 
   --popover-foreground: oklch(0.985 0.002 247.839);
 
@@ -179,7 +180,7 @@
 
   --border: oklch(1 0 0 / 10%);
 
-  --input: oklch(1 0 0 / 15%);
+  --input: oklch(25.538% 0.01887 280.481);
 
   --ring: oklch(0.551 0.027 264.364);
 

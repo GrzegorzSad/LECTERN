@@ -87,14 +87,14 @@ export function UploadPage() {
   const pendingCount = files.filter((f) => f.status === "pending").length;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
+    <div className="max-w-2xl mx-auto pt-2 space-y-3">
       {/* Drop zone */}
       <div
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onClick={() => document.getElementById("file-input")?.click()}
-        className={`border-2 border-dashed rounded-lg p-10 flex flex-col items-center gap-3 transition-colors cursor-pointer
+        className={`border-2 border-dashed rounded-lg p-10 flex flex-col items-center gap-3 transition-colors cursor-pointer bg-popover shadow-sm
           ${dragging
             ? "border-primary bg-primary/5"
             : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30"
@@ -129,7 +129,7 @@ export function UploadPage() {
       {/* File list */}
       {files.length > 0 && (
         <>
-          <div className="overflow-hidden rounded-md border bg-background">
+          <div className="overflow-hidden rounded-md border bg-popover shadow-sm">
             {files.map((entry, i) => (
               <div
                 key={entry.id}

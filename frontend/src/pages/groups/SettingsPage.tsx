@@ -31,7 +31,7 @@ const PERSONALITIES = [
 ];
 
 // ---------------------------------------------------------------------------
-// Shared section wrapper — mirrors the bordered bg-background blocks
+// Shared section wrapper — mirrors the bordered bg-popover shadow-sm blocks
 // ---------------------------------------------------------------------------
 
 function Section({
@@ -44,7 +44,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-md border bg-background">
+    <div className="overflow-hidden rounded-md border bg-popover shadow-sm">
       <div className="px-4 py-3 border-b">
         <p className="text-sm font-medium">{title}</p>
         {description && (
@@ -128,7 +128,7 @@ function AiSettingsForm({
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Add extra instructions for the AI in this context..."
-          className="w-full text-sm border rounded-md px-3 py-2 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full text-sm border rounded-md px-3 py-2 bg-popover shadow-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
           rows={3}
         />
       </div>
@@ -236,7 +236,7 @@ export function SettingsPage() {
   if (error || !group) return <div>Group not found</div>;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
+    <div className="max-w-2xl mx-auto pt-2 pb-6 space-y-3">
       {/* Group AI settings */}
       <Section
         title="Group AI Settings"
@@ -252,7 +252,7 @@ export function SettingsPage() {
 
       {/* Per-channel AI settings */}
       {channels.length > 0 && (
-        <div className="overflow-hidden rounded-md border bg-background">
+        <div className="overflow-hidden rounded-md border bg-popover shadow-sm">
           <div className="px-4 py-3 border-b">
             <p className="text-sm font-medium">Channel AI Settings</p>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -301,7 +301,7 @@ export function SettingsPage() {
       )}
 
       {/* Danger zone */}
-      <div className="overflow-hidden rounded-md border border-destructive/30 bg-background">
+      <div className="overflow-hidden rounded-md border border-destructive/30 bg-popover shadow-sm">
         <div className="px-4 py-3 border-b border-destructive/30">
           <p className="text-sm font-medium text-destructive">Danger Zone</p>
           <p className="text-xs text-muted-foreground mt-0.5">

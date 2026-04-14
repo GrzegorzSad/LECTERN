@@ -309,14 +309,14 @@ export function OneDriveListPage() {
   const allItems = [...folders, ...files];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
+    <div className="max-w-2xl mx-auto pt-2 space-y-3">
       <SearchFilter
         value={search}
         onChange={setSearch}
         placeholder="Search files..."
       />
 
-      <div className="overflow-hidden rounded-md border bg-background">
+      <div className="overflow-hidden rounded-md border bg-popover shadow-sm">
         {allItems.length === 0 ? (
           <p className="p-8 text-center text-sm text-muted-foreground">
             {search ? `No items match "${search}"` : "No files found in your OneDrive."}

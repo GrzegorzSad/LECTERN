@@ -378,7 +378,7 @@ export function DataPage() {
 
   return (
     <>
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 bg-sidebar rounded-lg">
+      <div className="max-w-2xl mx-auto pt-2 space-y-3">
         {/* Toolbar */}
         <div className="flex items-center gap-2">
           <div className="flex-1">
@@ -394,7 +394,7 @@ export function DataPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-hidden rounded-md border bg-background">
+        <div className="overflow-hidden rounded-md border bg-popover shadow-sm">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (

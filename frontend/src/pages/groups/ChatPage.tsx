@@ -756,7 +756,7 @@ export function ChatPage() {
                           className={cn(
                             "rounded-lg px-4 py-2 text-sm break-words",
                             style === "ai" &&
-                              "bg-transparent p-1 text-foreground",
+                              "bg-transparent ps-0 pb-1 text-foreground",
                             style === "own" &&
                               !activeColor &&
                               "bg-channel text-primary-foreground",
@@ -886,7 +886,7 @@ export function ChatPage() {
                         </button>
                       </div>
                     )}
-                    <div className="flex gap-2 items-center bg-background/80 backdrop-blur-sm border rounded-xl px-3 py-2 shadow-lg">
+                    <div className="flex gap-2 items-center bg-popover/85 backdrop-blur-sm border rounded-xl px-3 py-2 shadow-lg">
                       <Input
                         value={question}
                         onChange={(e) => setQuestion(e.target.value)}
@@ -896,7 +896,7 @@ export function ChatPage() {
                             ? "Ask AI something..."
                             : "Message or ask AI..."
                         }
-                        className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                        className="flex-1 border-0 shadow-none focus-visible:ring-0"
                         disabled={asking}
                       />
                       {selectedChannel && (
@@ -1002,7 +1002,7 @@ export function ChatPage() {
                       ? "Enter private chat name"
                       : "Enter channel name"
                 }
-                className="bg-white text-black"
+                className="bg-popover text-black"
               />
             </div>
             <div className="flex justify-end gap-2">
