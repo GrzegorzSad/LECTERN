@@ -674,9 +674,7 @@ export function ChatPage() {
                 </div>
               )}
 
-              {pinnedMessages.length < 1 && (
-                <div className="ml-auto" />
-              )}
+              {pinnedMessages.length < 1 && <div className="ml-auto" />}
 
               <button
                 onClick={() => setNotesOpen((o) => !o)}
@@ -779,7 +777,7 @@ export function ChatPage() {
                           </ReactMarkdown>
                         </div>
 
-                        <div className="flex items-center gap-1.5 px-1 relative">
+                        <div className="flex items-center gap-2 px-1 relative">
                           {style !== "own" && (
                             <span className="text-xs font-medium text-muted-foreground">
                               {style === "ai"
@@ -798,12 +796,12 @@ export function ChatPage() {
                                     prev === msg.id ? null : msg.id,
                                   )
                                 }
-                                className="flex items-center gap-0.5 text-xs transition-colors"
+                                className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
                                 title="View sources"
                               >
                                 <BookOpen className="h-3 w-3" />
-                                <span className="text-muted-foreground/70">
-                                  {msgSources.length}
+                                <span>
+                                  Source {msgSources.length} 
                                 </span>
                               </button>
                               {isSourceOpen && (

@@ -48,76 +48,88 @@ export function RegisterPage() {
   };
 
   return (
-    <form
-      onSubmit={form.handleSubmit(onSubmit)}
-      className="w-full max-w-sm mx-auto space-y-4"
-    >
-      <FieldGroup>
-        <Controller
-          name="name"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel>Name</FieldLabel>
-              <Input {...field} placeholder="John Doe" />
-              {fieldState.error && (
-                <FieldError>{fieldState.error.message}</FieldError>
-              )}
-            </Field>
-          )}
-        />
-        <Controller
-          name="email"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel>Email</FieldLabel>
-              <Input {...field} placeholder="you@example.com" />
-              {fieldState.error && (
-                <FieldError>{fieldState.error.message}</FieldError>
-              )}
-            </Field>
-          )}
-        />
-        <Controller
-          name="password"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel>Password</FieldLabel>
-              <Input {...field} type="password" placeholder="••••••••" />
-              {fieldState.error && (
-                <FieldError>{fieldState.error.message}</FieldError>
-              )}
-            </Field>
-          )}
-        />
-        <Controller
-          name="confirmPassword"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel>Confirm Password</FieldLabel>
-              <Input {...field} type="password" placeholder="••••••••" />
-              {fieldState.error && (
-                <FieldError>{fieldState.error.message}</FieldError>
-              )}
-            </Field>
-          )}
-        />
-      </FieldGroup>
-      {form.formState.errors.root && (
-        <p className="text-destructive text-sm">
-          {form.formState.errors.root.message}
-        </p>
-      )}
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={form.formState.isSubmitting}
-      >
-        {form.formState.isSubmitting ? "Registering..." : "Register"}
-      </Button>
-    </form>
+    <div className="w-full max-w-sm mx-auto mt-16 p-6 bg-white rounded shadow-md">
+      <h2 className="text-2xl font-bold mb-2 text-center">Create your account</h2>
+      <p className="text-gray-600 mb-6 text-center">Sign up to get started with your new account.</p>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FieldGroup>
+          <Controller
+            name="name"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>Name</FieldLabel>
+                <Input {...field} placeholder="John Doe" />
+                {fieldState.error && (
+                  <FieldError>{fieldState.error.message}</FieldError>
+                )}
+              </Field>
+            )}
+          />
+          <Controller
+            name="email"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>Email</FieldLabel>
+                <Input {...field} placeholder="you@example.com" />
+                {fieldState.error && (
+                  <FieldError>{fieldState.error.message}</FieldError>
+                )}
+              </Field>
+            )}
+          />
+          <Controller
+            name="password"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>Password</FieldLabel>
+                <Input {...field} type="password" placeholder="••••••••" />
+                {fieldState.error && (
+                  <FieldError>{fieldState.error.message}</FieldError>
+                )}
+              </Field>
+            )}
+          />
+          <Controller
+            name="confirmPassword"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>Confirm Password</FieldLabel>
+                <Input {...field} type="password" placeholder="••••••••" />
+                {fieldState.error && (
+                  <FieldError>{fieldState.error.message}</FieldError>
+                )}
+              </Field>
+            )}
+          />
+        </FieldGroup>
+        {form.formState.errors.root && (
+          <p className="text-destructive text-sm">
+            {form.formState.errors.root.message}
+          </p>
+        )}
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={form.formState.isSubmitting}
+        >
+          {form.formState.isSubmitting ? "Registering..." : "Register"}
+        </Button>
+      </form>
+      <div className="mt-6 text-center">
+        <span className="text-gray-600">Already have an account?</span>
+        <Button
+          type="button"
+          variant="outline"
+          className="ml-2"
+          onClick={() => navigate("/login")}
+        >
+          Log In
+        </Button>
+      </div>
+    </div>
   );
 }
