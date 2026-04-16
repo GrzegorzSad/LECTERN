@@ -47,14 +47,14 @@ export default function Home() {
               </Button>
             </>
           ) : (
-            <>
+            <div className="flex items-center gap-3 pt-2">
               <Button size="lg">
                 <Link to="/register">Get Started</Link>
               </Button>
               <Button size="lg" variant="outline">
                 <Link to="/login">Sign In</Link>
               </Button>
-            </>
+            </div>
           )}
         </div>
       </div>
