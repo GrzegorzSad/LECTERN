@@ -942,10 +942,15 @@ export function ChatPage() {
             </div>
           </>
         ) : (
-          <div className="h-full flex items-center justify-center">
+          <div className="h-full flex flex-col items-center justify-center gap-4">
             <p className="text-muted-foreground">
               No channels yet — create one to get started.
             </p>
+            {(isAdmin) && (
+              <Button onClick={openCreateDialog} size="lg">
+                + Create Channel
+              </Button>
+            )}
           </div>
         )}
       </div>

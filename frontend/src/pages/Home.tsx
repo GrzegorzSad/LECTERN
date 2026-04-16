@@ -38,9 +38,14 @@ export default function Home() {
           Upload your documents, gather your team, and let AI answer questions
           directly from your files — no hallucinations, no guessing.
         </p>
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col items-center gap-3 pt-2">
           {loggedIn ? (
-            <h3>Create or join a group to get started</h3>
+            <>
+              <h3>Create or join a group to get started</h3>
+              <Button size="lg" onClick={() => window.dispatchEvent(new CustomEvent('open-create-group-dialog'))}>
+                + Create Group
+              </Button>
+            </>
           ) : (
             <>
               <Button size="lg">

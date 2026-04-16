@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Group } from "../types/types";
 import { groupsApi } from "../api/client";
@@ -65,6 +65,13 @@ export function GroupList({ groups }: { groups: Group[] }) {
     setGroupImg("");
     setDialogOpen(true);
   };
+
+  // Listen for global event to open create group dialog
+  useEffect(() => {
+    const handler = () => openCreateDialog();
+    window.addEventListener('open-create-group-dialog', handler);
+    return () => window.removeEventListener('open-create-group-dialog', handler);
+  }, []);
 
   const openEditDialog = (group: Group) => {
     setDialogMode("edit");
