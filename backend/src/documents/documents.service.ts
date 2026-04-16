@@ -5,15 +5,14 @@ import { OneDriveService } from 'src/onedrive/onedrive.service';
 import { SourcesService } from 'src/sources/sources.service';
 import { LinkedAccountsService } from 'src/linked-accounts/linked-accounts.service';
 import { CreateChunksDto } from './dto/create-chunks.dto';
-import { ListDocumentsDto } from './dto/list-documents.dto';
-import * as fs from 'fs';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
-import axios from 'axios';
 
 @Injectable()
 export class DocumentsService {
-  private uploadDir = path.join(process.cwd(), 'uploads');
+  private supabase: SupabaseClient;
+  private bucket: string;
 
   constructor(
     private readonly ragService: RagService,
@@ -22,9 +21,11 @@ export class DocumentsService {
     private readonly oneDriveService: OneDriveService,
     private readonly sourcesService: SourcesService,
   ) {
-    if (!fs.existsSync(this.uploadDir)) {
-      fs.mkdirSync(this.uploadDir, { recursive: true });
-    }
+    this.supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!,
+    );
+    this.bucket = process.env.SUPABASE_BUCKET ?? 'documents';
   }
 
   async getDocuments(dto: { groupId?: number; userId?: number }) {
@@ -66,37 +67,49 @@ export class DocumentsService {
     previewUrl?: string,
   ) {
     const ext = path.extname(file.originalname);
-    const filename = `${randomUUID()}${ext}`;
-    const filePath = path.join(this.uploadDir, filename);
+    const key = `${randomUUID()}${ext}`;
 
     if (sourceId) {
       await this.sourcesService.validateGroupSource(groupId, sourceId);
     }
 
-    fs.writeFileSync(filePath, file.buffer);
+    // Upload to Supabase Storage
+    const { error: uploadError } = await this.supabase.storage
+      .from(this.bucket)
+      .upload(key, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw new BadRequestException(
+        `Failed to upload file: ${uploadError.message}`,
+      );
+    }
+
+    // Get the public URL
+    const { data: urlData } = this.supabase.storage
+      .from(this.bucket)
+      .getPublicUrl(key);
+
+    const publicUrl = urlData.publicUrl;
 
     const dbFile = await this.prisma.file.create({
       data: {
         name: file.originalname,
-        path: filePath,
+        path: key,
         mimeType: file.mimetype,
         size: file.size,
         userId,
         groupId,
         remoteId,
-        previewUrl,
+        previewUrl: publicUrl,
         sourceId,
         isLinked: isLinked,
       },
     });
 
-    const ragResult = await this.ragService.processFile(
-      file,
-      // userId,
-      // groupId,
-      // sourceId,
-      // dbFile.id,
-    );
+    const ragResult = await this.ragService.processFile(file);
 
     // Automatically store chunks if returned
     if (ragResult.chunks && ragResult.vectors) {
@@ -178,6 +191,7 @@ export class DocumentsService {
         metadata.webUrl,
       );
     } catch (err) {
+      if (err instanceof BadRequestException) throw err;
       throw new BadRequestException('Failed to download file from OneDrive');
     }
   }
@@ -210,11 +224,22 @@ export class DocumentsService {
 
     await this.prisma.chunk.deleteMany({ where: { fileId } });
 
-    await this.prisma.file.delete({ where: { id: fileId } });
+    // Extract the storage key from the stored public URL
+    const key = file.path.split(`${this.bucket}/`)[1];
 
-    if (file.path && fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
+    if (key) {
+      const { error: deleteError } = await this.supabase.storage
+        .from(this.bucket)
+        .remove([key]);
+
+      if (deleteError) {
+        throw new BadRequestException(
+          `Failed to delete file from storage: ${deleteError.message}`,
+        );
+      }
     }
+
+    await this.prisma.file.delete({ where: { id: fileId } });
 
     return { success: true };
   }
