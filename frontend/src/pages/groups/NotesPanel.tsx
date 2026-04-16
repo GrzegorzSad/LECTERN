@@ -23,6 +23,7 @@ export function NotesPanel({ open, onClose, groupId }: NotesPanelProps) {
     return cached || "";
   });
   const [uploadState, setUploadState] = useState<UploadState>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const isEmpty = !content.trim();
 
@@ -37,6 +38,7 @@ export function NotesPanel({ open, onClose, groupId }: NotesPanelProps) {
   const handleAddAsSource = async () => {
     if (isEmpty) return;
     setUploadState("uploading");
+    setErrorMsg(null);
     try {
       const blob = new Blob([content], { type: "text/plain" });
       const filename = `${title.trim() || "note"}.txt`;
@@ -50,7 +52,15 @@ export function NotesPanel({ open, onClose, groupId }: NotesPanelProps) {
         body: formData,
       });
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        let msg = "Upload failed";
+        try {
+          const data = await res.json();
+          if (data && data.message) msg = data.message;
+        } catch {}
+        setErrorMsg(msg);
+        throw new Error(msg);
+      }
 
       setUploadState("done");
       setTimeout(() => {
@@ -59,10 +69,15 @@ export function NotesPanel({ open, onClose, groupId }: NotesPanelProps) {
         localStorage.removeItem(`${NOTE_CACHE_KEY}-title-${groupId}`);
         localStorage.removeItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
         setUploadState("idle");
+        setErrorMsg(null);
       }, 2000);
-    } catch {
+    } catch (err: any) {
       setUploadState("error");
-      setTimeout(() => setUploadState("idle"), 2500);
+      if (!errorMsg) setErrorMsg(err?.message || "Upload failed");
+      setTimeout(() => {
+        setUploadState("idle");
+        setErrorMsg(null);
+      }, 3500);
     }
   };
 
@@ -108,13 +123,19 @@ export function NotesPanel({ open, onClose, groupId }: NotesPanelProps) {
 
       {/* Footer */}
       <div className="px-4 py-3 border-t shrink-0 flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">
-          {uploadState === "done"
-            ? "Added to group sources ✓"
-            : uploadState === "error"
-            ? "Upload failed — try again"
-            : "Uploads the note as a searchable document"}
-        </p>
+        <div className="flex flex-col gap-1 flex-1 min-w-0">
+          {errorMsg ? (
+            <p className="text-xs text-destructive break-words">{errorMsg}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {uploadState === "done"
+                ? "Added to group sources ✓"
+                : uploadState === "error"
+                ? "Upload failed — try again"
+                : "Uploads the note as a searchable document"}
+            </p>
+          )}
+        </div>
         <button
           onClick={handleAddAsSource}
           disabled={isEmpty || uploadState === "uploading" || uploadState === "done"}
