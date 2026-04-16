@@ -20,11 +20,10 @@ import { DocumentsService } from './documents.service';
 import { ApiConsumes, ApiBody, ApiTags } from '@nestjs/swagger';
 import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
 import { UploadDocumentDto } from './dto/upload-documents.dto';
-import type { Response } from 'express';
+import type { Response, Request } from 'express';
 import { LinkDocumentDto } from './dto/link-documents.dto';
 import { CreateChunksDto } from './dto/create-chunks.dto';
 import { ListDocumentsDto } from './dto/list-documents.dto';
-import type { Request } from 'express';
 
 @ApiTags('documents')
 @Controller('documents')
@@ -33,7 +32,7 @@ export class DocumentsController {
 
   @UseGuards(SessionAuthGuard)
   @Get('list')
-  getDocuments(@Req() req: Request, @Query() query: ListDocumentsDto) {
+  getDocuments(@Query() query: ListDocumentsDto) {
     return this.documentsService.getDocuments(query);
   }
 
@@ -43,19 +42,17 @@ export class DocumentsController {
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'Upload a file with metadata',
-    type: 'multipart/form-data',
     schema: {
       type: 'object',
       properties: {
         file: { type: 'string', format: 'binary' },
         groupId: { type: 'number' },
         sourceId: { type: 'number' },
-        link: { type: 'string' },
       },
       required: ['file', 'groupId'],
     },
   })
-  upload(
+  async upload(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: UploadDocumentDto,
     @Req() req: Request,
@@ -63,13 +60,20 @@ export class DocumentsController {
     if (!file) {
       throw new Error('file required');
     }
+
     const userId = req.session.user!.id;
-    return this.documentsService.uploadDocument(
+
+    const result = await this.documentsService.uploadDocument(
       file,
       userId,
       dto.groupId,
       dto.sourceId,
     );
+
+    return {
+      file: result.file,
+      status: 'processing',
+    };
   }
 
   @UseGuards(SessionAuthGuard)
@@ -86,14 +90,20 @@ export class DocumentsController {
       required: ['link', 'groupId'],
     },
   })
-  link(@Body() dto: LinkDocumentDto, @Req() req: Request) {
+  async link(@Body() dto: LinkDocumentDto, @Req() req: Request) {
     const userId = req.session.user!.id;
-    return this.documentsService.linkDocument(
+
+    const result = await this.documentsService.linkDocument(
       userId,
       dto.groupId,
       dto.link,
       dto.sourceId,
     );
+
+    return {
+      file: result.file,
+      status: 'processing',
+    };
   }
 
   @Post('chunks')

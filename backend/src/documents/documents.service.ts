@@ -73,7 +73,6 @@ export class DocumentsService {
       await this.sourcesService.validateGroupSource(groupId, sourceId);
     }
 
-    // Upload to Supabase Storage
     const { error: uploadError } = await this.supabase.storage
       .from(this.bucket)
       .upload(key, file.buffer, {
@@ -87,7 +86,6 @@ export class DocumentsService {
       );
     }
 
-    // Get the public URL
     const { data: urlData } = this.supabase.storage
       .from(this.bucket)
       .getPublicUrl(key);
@@ -109,23 +107,31 @@ export class DocumentsService {
       },
     });
 
-    const ragResult = await this.ragService.processFile(file);
+    // STREAMING + FIRE-AND-FORGET
+    (async () => {
+      try {
+        const stream = this.ragService.processFileStream(file);
 
-    // Automatically store chunks if returned
-    if (ragResult.chunks && ragResult.vectors) {
-      const chunksData = ragResult.chunks.map((text: string, i: number) => ({
-        fileId: dbFile.id,
-        fileName: file.originalname,
-        text: ragResult.chunks[i],
-        vector: ragResult.vectors[i],
-        relations: null,
-        entities: null,
-      }));
+        for await (const batch of stream) {
+          const chunksData = batch.chunks.map(
+            (text: string, i: number) => ({
+              fileId: dbFile.id,
+              fileName: file.originalname,
+              text,
+              vector: batch.vectors[i],
+              relations: null,
+              entities: null,
+            }),
+          );
 
-      await this.prisma.chunk.createMany({ data: chunksData });
-    }
+          await this.prisma.chunk.createMany({ data: chunksData });
+        }
+      } catch (err) {
+        console.error('RAG processing failed:', err);
+      }
+    })();
 
-    return { file: dbFile, rag: ragResult };
+    return { file: dbFile };
   }
 
   private async linkFile(
@@ -224,7 +230,6 @@ export class DocumentsService {
 
     await this.prisma.chunk.deleteMany({ where: { fileId } });
 
-    // Extract the storage key from the stored public URL
     const key = file.path.split(`${this.bucket}/`)[1];
 
     if (key) {

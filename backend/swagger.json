@@ -904,16 +904,12 @@
                   },
                   "sourceId": {
                     "type": "number"
-                  },
-                  "link": {
-                    "type": "string"
                   }
                 },
                 "required": [
                   "file",
                   "groupId"
-                ],
-                "$ref": "#/components/schemas/"
+                ]
               }
             }
           }
