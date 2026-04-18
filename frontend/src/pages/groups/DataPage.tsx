@@ -273,7 +273,10 @@ export function DataPage() {
         header: ({ column }) => <SortHeader label="Name" column={column} />,
         cell: ({ row }) => (
           <a
-            href={`${BASE_URL}/documents/preview/${row.original.id}`}
+            href={
+              row.original.previewUrl ??
+              `${BASE_URL}/documents/preview/${row.original.id}`
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 min-w-0 group/link"
@@ -290,9 +293,7 @@ export function DataPage() {
       {
         id: "uploaderName",
         accessorKey: "uploaderName",
-        header: ({ column }) => (
-          <SortHeader label="Added by" column={column} />
-        ),
+        header: ({ column }) => <SortHeader label="Added by" column={column} />,
         cell: ({ getValue }) => (
           <span className="text-sm text-muted-foreground">
             {getValue() as string}
@@ -374,7 +375,7 @@ export function DataPage() {
   if (loading || filesLoading) return <Loading />;
   if (error || !group) return <div>Group not found</div>;
 
-  const confirmFile = confirmId ? files.find(f => f.id === confirmId) : null;
+  const confirmFile = confirmId ? files.find((f) => f.id === confirmId) : null;
 
   return (
     <>
@@ -450,11 +451,16 @@ export function DataPage() {
         )}
       </div>
 
-      <AlertDialog open={!!confirmId} onOpenChange={(open) => !open && setConfirmId(null)}>
+      <AlertDialog
+        open={!!confirmId}
+        onOpenChange={(open) => !open && setConfirmId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogTitle>Delete file?</AlertDialogTitle>
           <AlertDialogDescription>
-            {confirmFile ? `Delete "${confirmFile.name}"?` : "Delete this file?"}
+            {confirmFile
+              ? `Delete "${confirmFile.name}"?`
+              : "Delete this file?"}
           </AlertDialogDescription>
           <div className="flex gap-3 justify-end pt-4">
             <AlertDialogCancel asChild>
