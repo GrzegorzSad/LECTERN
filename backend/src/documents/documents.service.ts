@@ -90,8 +90,6 @@ export class DocumentsService {
       .from(this.bucket)
       .getPublicUrl(key);
 
-    const publicUrl = urlData.publicUrl;
-
     const dbFile = await this.prisma.file.create({
       data: {
         name: file.originalname,
@@ -101,7 +99,7 @@ export class DocumentsService {
         userId,
         groupId,
         remoteId,
-        previewUrl: publicUrl,
+        previewUrl: urlData.publicUrl,
         sourceId,
         isLinked: isLinked,
       },
@@ -113,18 +111,41 @@ export class DocumentsService {
         const stream = this.ragService.processFileStream(file);
 
         for await (const batch of stream) {
-          const chunksData = batch.chunks.map(
-            (text: string, i: number) => ({
-              fileId: dbFile.id,
-              fileName: file.originalname,
-              text,
-              vector: batch.vectors[i],
-              relations: null,
-              entities: null,
-            }),
-          );
+          // Check for duplicate chunks by hash before inserting
+          const existingHashes = await this.prisma.chunk
+            .findMany({
+              where: { hash: { in: batch.hashes } },
+              select: { hash: true },
+            })
+            .then((rows) => new Set(rows.map((r) => r.hash)));
 
-          await this.prisma.chunk.createMany({ data: chunksData });
+          const chunksData = batch.chunks
+            .map((text: string, i: number) => {
+              const hash = batch.hashes[i];
+
+              // Skip chunks we've already seen (deduplication)
+              if (existingHashes.has(hash)) return null;
+
+              const parentIndex = batch.parentIndices[i];
+              const parentText = batch.parentChunks[parentIndex] ?? null;
+
+              return {
+                fileId: dbFile.id,
+                fileName: file.originalname,
+                text,
+                vector: batch.vectors[i],
+                hash,
+                parentText,
+                chunkIndex: i,
+                entities: batch.entities[i] ?? null,
+                relations: null, // reserved for future graph extraction
+              };
+            })
+            .filter((c): c is NonNullable<typeof c> => c !== null);
+
+          if (chunksData.length > 0) {
+            await this.prisma.chunk.createMany({ data: chunksData });
+          }
         }
       } catch (err) {
         console.error('RAG processing failed:', err);
@@ -148,14 +169,11 @@ export class DocumentsService {
 
     try {
       const url = new URL(link);
-
       if (url.hostname === 'graph.microsoft.com') {
         const match = url.pathname.match(
           /\/me\/drive\/items\/([^\/]+)\/content/,
         );
-
         if (!match) throw new Error('Invalid OneDrive link format');
-
         itemId = match[1];
       }
     } catch {
@@ -225,7 +243,6 @@ export class DocumentsService {
 
   async deleteDocument(fileId: number) {
     const file = await this.prisma.file.findUnique({ where: { id: fileId } });
-
     if (!file) throw new BadRequestException('File not found');
 
     await this.prisma.chunk.deleteMany({ where: { fileId } });

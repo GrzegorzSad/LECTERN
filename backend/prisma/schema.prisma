@@ -57,6 +57,9 @@ model Chunk {
   entities  String?
   file      File   @relation(fields: [fileId], references: [id])
   fileId    Int
+  hash       String?
+  parentText String?
+  chunkIndex Int?  
 }
 
 // Files
