@@ -720,7 +720,7 @@ export function ChatPage() {
                         )}
                       >
                         {msg.parentMessageId && (
-                          <div className="rounded-lg border border-muted/40 px-3 py-1 text-xs text-muted-foreground mb-1">
+                          <div className="rounded-lg border px-3 py-1 text-xs text-muted-foreground mb-1">
                             Replying to:
                             {(() => {
                               const parent = messages.find(
