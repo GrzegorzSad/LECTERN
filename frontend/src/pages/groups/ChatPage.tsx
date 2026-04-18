@@ -701,7 +701,7 @@ export function ChatPage() {
                     </p>
                   )}
                   {!messagesLoading && messages.length === 0 && (
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-muted-foreground text-sm flex flex-col items-center flex-grow h-full justify-center">
                       No messages yet — ask something!
                     </p>
                   )}

@@ -299,7 +299,7 @@ export function NotesPanel({ open, onClose, groupId }: NotesPanelProps) {
                 ? "Added to group sources ✓"
                 : uploadState === "error"
                   ? "Upload failed — try again"
-                  : "Saves as a Markdown (.md) file"}
+                  : "Save as group source"}
             </p>
           )}
         </div>
