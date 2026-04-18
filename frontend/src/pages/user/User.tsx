@@ -462,16 +462,20 @@ export function UserPage() {
 
         <div className="px-4 pt-2 pb-1 divide-y divide-border">
           {/* Dark mode toggle — collapsible */}
-          <CollapsibleRow label="Dark Mode">
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-sm">{isDark ? "☀️ Light" : "🌙 Dark"}</span>
-              <Button size="sm" variant="outline" onClick={toggleDarkMode}>
-                {isDark ? "Switch to Light" : "Switch to Dark"}
-              </Button>
-            </div>
-          </CollapsibleRow>
+          {/* <CollapsibleRow label="Dark Mode"> */}
+          <div className="flex items-center justify-between py-1">
+            <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">Change color palette</span>
+            <Button size="sm" variant="outline" onClick={toggleDarkMode}>
+              {isDark ? "Switch to Light" : "Switch to Dark"}
+            </Button>
+          </div>
+          {/* </CollapsibleRow> */}
           {/* Display name — collapsible */}
-          <CollapsibleRow label="Display Name">
+          {/* <CollapsibleRow label="Display Name"> */}
+          <div className="flex flex-col py-2">
+            <p className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+              Change Name
+            </p>
             <div className="flex gap-2 pt-1">
               <Input
                 value={newName}
@@ -490,7 +494,8 @@ export function UserPage() {
             {nameError && (
               <p className="text-xs text-destructive mt-1.5">{nameError}</p>
             )}
-          </CollapsibleRow>
+          </div>
+          {/* </CollapsibleRow> */}
 
           {/* Change password — collapsible */}
           <CollapsibleRow label="Change Password">
