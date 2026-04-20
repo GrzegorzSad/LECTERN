@@ -26,6 +26,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import { Sheet, SheetContent, SheetTrigger } from "../../components/sheet";
 import { NotesPanel } from "./NotesPanel";
+import { useLocation } from "react-router-dom";
 
 const formatTime = (iso: string) => {
   const date = new Date(iso);
@@ -188,6 +189,10 @@ export function ChatPage() {
   const { group, loading, error, myRole } = useGroup();
   const { user: currentUser, userLoading } = useAuth();
   const socket = useSocket();
+  const location = useLocation();
+  const previewUrl = location.state?.previewUrl as string | undefined;
+  const fileId = location.state?.fileId as number | undefined;
+  const fileName = location.state?.fileName as string | undefined;
 
   const isAdmin = myRole === "OWNER" || myRole === "ADMIN";
 
@@ -209,7 +214,7 @@ export function ChatPage() {
   const [pinnedPopoverOpen, setPinnedPopoverOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const skipScrollRef = useRef(false);
-  const [notesOpen, setNotesOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(!!previewUrl ? true : false);
 
   const pinnedMessages = messages.filter((m) => m.isPinned);
 
@@ -800,9 +805,7 @@ export function ChatPage() {
                                 title="View sources"
                               >
                                 <BookOpen className="h-3 w-3" />
-                                <span>
-                                  Source {msgSources.length} 
-                                </span>
+                                <span>Source {msgSources.length}</span>
                               </button>
                               {isSourceOpen && (
                                 <SourcesPopover
@@ -938,6 +941,9 @@ export function ChatPage() {
                 open={notesOpen}
                 onClose={() => setNotesOpen(false)}
                 groupId={Number(id)}
+                previewUrl={previewUrl}
+                fileId={fileId}
+                fileName={fileName}
               />
             </div>
           </>
@@ -946,7 +952,7 @@ export function ChatPage() {
             <p className="text-muted-foreground">
               No channels yet — create one to get started.
             </p>
-            {(isAdmin) && (
+            {isAdmin && (
               <Button onClick={openCreateDialog} size="lg">
                 + Create Channel
               </Button>

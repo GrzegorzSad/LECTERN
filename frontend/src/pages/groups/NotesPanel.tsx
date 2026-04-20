@@ -1,9 +1,25 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { X, FileText, Upload, CheckCircle2, Bold, Italic, Heading1, Heading2, List, Code } from "lucide-react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import {
+  X,
+  FileText,
+  Upload,
+  CheckCircle2,
+  Bold,
+  Italic,
+  Heading1,
+  Heading2,
+  List,
+  Code,
+} from "lucide-react";
 import { cn } from "../../lib/utils";
 import { BASE_URL } from "../../api/client";
 
-import { Plate, usePlateEditor, PlateContent, type PlateEditor } from "platejs/react";
+import {
+  Plate,
+  usePlateEditor,
+  PlateContent,
+  type PlateEditor,
+} from "platejs/react";
 import type { Value } from "platejs";
 import {
   BoldPlugin,
@@ -16,28 +32,37 @@ import {
   H3Plugin,
   BlockquotePlugin,
 } from "@platejs/basic-nodes/react";
-import { BulletedListPlugin, NumberedListPlugin, ListItemPlugin } from "@platejs/list-classic/react";
+import {
+  BulletedListPlugin,
+  NumberedListPlugin,
+  ListItemPlugin,
+} from "@platejs/list-classic/react";
 import { toggleList } from "@platejs/list-classic";
 import { MarkdownPlugin } from "@platejs/markdown";
+import { Button } from "../../components/button";
 
 interface NotesPanelProps {
   open: boolean;
   onClose: () => void;
   groupId: number;
+  previewUrl?: string;
+  fileId?: number;
+  fileName?: string;
+  onExitEditMode?: () => void;
 }
 
 type UploadState = "idle" | "uploading" | "done" | "error";
 
 const NOTE_CACHE_KEY = "notes-panel-cache";
+const NOTE_METADATA_KEY = "notes-panel-metadata";
 
+const stripExtension = (name: string) => name.replace(/\.[^/.]+$/, "");
 
 function ToolbarButton({
-  active,
   onClick,
   title,
   children,
 }: {
-  active?: boolean;
   onClick: () => void;
   title: string;
   children: React.ReactNode;
@@ -47,12 +72,11 @@ function ToolbarButton({
       type="button"
       title={title}
       onMouseDown={(e) => {
-        e.preventDefault(); // prevent editor losing focus
+        e.preventDefault();
         onClick();
       }}
       className={cn(
         "rounded p-1 transition-colors text-muted-foreground hover:text-foreground hover:bg-muted",
-        active && "bg-muted text-foreground",
       )}
     >
       {children}
@@ -60,101 +84,160 @@ function ToolbarButton({
   );
 }
 
-export function NotesPanel({ open, onClose, groupId }: NotesPanelProps) {
-  const [title, setTitle] = useState(() => {
-    return localStorage.getItem(`${NOTE_CACHE_KEY}-title-${groupId}`) || "";
-  });
+export function NotesPanel({
+  open,
+  onClose,
+  groupId,
+  previewUrl,
+  fileId,
+  fileName,
+  onExitEditMode,
+}: NotesPanelProps) {
+  // --- Persisted Metadata ---
+  const [editingFileId, setEditingFileId] = useState<number | null>(null);
+  const [editingFileName, setEditingFileName] = useState<string | undefined>(undefined);
+  const [activePreviewUrl, setActivePreviewUrl] = useState<string | undefined>(undefined);
+
+  const isEditing = !!editingFileId;
+
+  // --- UI State ---
+  const [title, setTitle] = useState("");
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState(true);
+  const [loadingFile, setLoadingFile] = useState(false);
+  const [locked, setLocked] = useState(false);
 
-  // We need a ref to the editor to serialize on upload
-  const editorRef = useRef<ReturnType<typeof usePlateEditor> | null>(null);
-
-  const plugins = [
-    BoldPlugin,
-    ItalicPlugin,
-    UnderlinePlugin,
-    StrikethroughPlugin,
-    CodePlugin,
-    H1Plugin,
-    H2Plugin,
-    H3Plugin,
-    BlockquotePlugin,
-    BulletedListPlugin,
-    NumberedListPlugin,
-    ListItemPlugin,
+  // --- Editor Setup ---
+  const plugins = useMemo(() => [
+    BoldPlugin, ItalicPlugin, UnderlinePlugin, StrikethroughPlugin,
+    CodePlugin, H1Plugin, H2Plugin, H3Plugin, BlockquotePlugin,
+    BulletedListPlugin, NumberedListPlugin, ListItemPlugin,
     MarkdownPlugin,
-  ];
+  ], []);
 
-  const editor = usePlateEditor({
+  const editor = usePlateEditor({ 
     plugins,
-    // Initial value is loaded after mount via useEffect (needs editor.api.markdown)
+    value: [{ type: "p", children: [{ text: "" }] }] 
   });
 
-  // Store editor in ref for access inside callbacks
-  editorRef.current = editor;
-
-  // Load cached markdown value after mount
+  // 1. Initialize from Cache OR Props on mount/groupId change
   useEffect(() => {
-    const cached = localStorage.getItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
-    if (cached && editorRef.current) {
-      try {
-        const value = editorRef.current.api.markdown.deserialize(cached);
-        editorRef.current.tf.setValue(value);
-      } catch {
-        // ignore parse errors
-      }
+    const cachedMeta = localStorage.getItem(`${NOTE_METADATA_KEY}-${groupId}`);
+    if (cachedMeta) {
+      const parsed = JSON.parse(cachedMeta);
+      setEditingFileId(parsed.fileId);
+      setEditingFileName(parsed.fileName);
+      setActivePreviewUrl(parsed.previewUrl);
+    } else if (fileId) {
+      setEditingFileId(fileId);
+      setEditingFileName(fileName);
+      setActivePreviewUrl(previewUrl);
+      localStorage.setItem(`${NOTE_METADATA_KEY}-${groupId}`, JSON.stringify({ fileId, fileName, previewUrl }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId, fileId, fileName, previewUrl]);
+
+  // 2. Load Content Logic
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadContent = async () => {
+      if (!editor) return;
+
+      setLoadingFile(true);
+      try {
+        let contentToSet = "";
+        let titleToSet = "";
+
+        // Check if we have a draft for this specific group
+        const cachedContent = localStorage.getItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
+        const cachedTitle = localStorage.getItem(`${NOTE_CACHE_KEY}-title-${groupId}`);
+
+        if (isEditing && activePreviewUrl) {
+          // If we are editing, only use cache if it exists, otherwise FETCH
+          if (cachedContent) {
+            contentToSet = cachedContent;
+            titleToSet = cachedTitle || (editingFileName ? stripExtension(editingFileName) : "");
+          } else {
+            const res = await fetch(activePreviewUrl);
+            contentToSet = await res.text();
+            titleToSet = editingFileName ? stripExtension(editingFileName) : "";
+          }
+        } else {
+          // New Note Mode
+          contentToSet = cachedContent || "";
+          titleToSet = cachedTitle || "";
+        }
+
+        if (!cancelled) {
+          setTitle(titleToSet);
+          const nodes = editor.api.markdown.deserialize(contentToSet || " ");
+          editor.tf.setValue(nodes);
+        }
+      } catch (err) {
+        console.error("Load failed", err);
+      } finally {
+        if (!cancelled) setLoadingFile(false);
+      }
+    };
+
+    loadContent();
+    return () => { cancelled = true; };
+  }, [groupId, activePreviewUrl, isEditing, editor, editingFileName]);
+
+  const clearPersistence = useCallback(() => {
+    localStorage.removeItem(`${NOTE_METADATA_KEY}-${groupId}`);
+    localStorage.removeItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
+    localStorage.removeItem(`${NOTE_CACHE_KEY}-title-${groupId}`);
   }, [groupId]);
 
-  // Persist title
+  const exitEditMode = () => {
+    clearPersistence();
+    setEditingFileId(null);
+    setEditingFileName(undefined);
+    setActivePreviewUrl(undefined);
+    onExitEditMode?.();
+    setTitle("");
+    editor.tf.setValue([{ type: "p", children: [{ text: "" }] }]);
+  };
+
+  const handleChange = useCallback(({ value }: { value: Value }) => {
+    const hasContent = value.some((node: any) => 
+      node.children?.some((c: any) => c.text?.trim().length > 0)
+    );
+    setIsEmpty(!hasContent);
+
+    if (editor) {
+      const md = editor.api.markdown.serialize();
+      localStorage.setItem(`${NOTE_CACHE_KEY}-content-${groupId}`, md);
+      localStorage.setItem(`${NOTE_CACHE_KEY}-title-${groupId}`, title);
+    }
+  }, [groupId, editor, title]);
+
+  // Sync title to storage manually when it changes
   useEffect(() => {
     localStorage.setItem(`${NOTE_CACHE_KEY}-title-${groupId}`, title);
   }, [title, groupId]);
 
-  const handleChange = useCallback(
-    ({ value }: { editor: PlateEditor; value: Value }) => {
-      // Check emptiness: all top-level nodes are empty paragraphs
-      const hasContent = value.some((node: any) => {
-        const text = node.children?.map((c: any) => c.text ?? "").join("") ?? "";
-        return text.trim().length > 0;
-      });
-      setIsEmpty(!hasContent);
-
-      // Serialize to markdown and cache
-      if (editorRef.current) {
-        try {
-          const md = editorRef.current.api.markdown.serialize();
-          localStorage.setItem(`${NOTE_CACHE_KEY}-content-${groupId}`, md);
-        } catch {
-          // ignore
-        }
-      }
-    },
-    [groupId],
-  );
-
   const handleAddAsSource = async () => {
-    if (isEmpty || !editorRef.current) return;
+    if (isEmpty || !editor || locked) return;
 
+    setLocked(true);
     setUploadState("uploading");
-    setErrorMsg(null);
-
-    let markdownContent = "";
+    
     try {
-      markdownContent = editorRef.current.api.markdown.serialize();
-    } catch {
-      markdownContent = "";
-    }
+      const markdownContent = editor.api.markdown.serialize();
+      const filename = `${title.trim() || "note"}.md`;
 
-    const filename = `${title.trim() || "note"}.md`;
+      if (isEditing && editingFileId) {
+        await fetch(`${BASE_URL}/documents/${editingFileId}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+      }
 
-    try {
-      const blob = new Blob([markdownContent], { type: "text/markdown" });
       const formData = new FormData();
-      formData.append("file", blob, filename);
+      formData.append("file", new Blob([markdownContent], { type: "text/markdown" }), filename);
       formData.append("groupId", String(groupId));
 
       const res = await fetch(`${BASE_URL}/documents/upload`, {
@@ -163,171 +246,85 @@ export function NotesPanel({ open, onClose, groupId }: NotesPanelProps) {
         body: formData,
       });
 
-      if (!res.ok) {
-        let msg = "Upload failed";
-        try {
-          const data = await res.json();
-          if (data?.message) msg = data.message;
-        } catch {}
-        setErrorMsg(msg);
-        throw new Error(msg);
-      }
+      if (!res.ok) throw new Error("Upload failed");
 
       setUploadState("done");
+
       setTimeout(() => {
+        // FULL RESET
+        clearPersistence();
+        setEditingFileId(null);
+        setEditingFileName(undefined);
+        setActivePreviewUrl(undefined);
         setTitle("");
-        editorRef.current?.tf.setValue([{ type: "p", children: [{ text: "" }] }]);
-        localStorage.removeItem(`${NOTE_CACHE_KEY}-title-${groupId}`);
-        localStorage.removeItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
+        editor.tf.setValue([{ type: "p", children: [{ text: "" }] }]);
         setUploadState("idle");
-        setErrorMsg(null);
         setIsEmpty(true);
-      }, 2000);
+        setLocked(false);
+      }, 1500);
     } catch (err: any) {
       setUploadState("error");
-      if (!errorMsg) setErrorMsg(err?.message || "Upload failed");
-      setTimeout(() => {
-        setUploadState("idle");
-        setErrorMsg(null);
-      }, 3500);
+      setErrorMsg(err.message);
+      setTimeout(() => { setUploadState("idle"); setLocked(false); }, 3000);
     }
   };
 
   return (
-    <div
-      className={cn(
-        "flex flex-col border-l bg-background transition-[width,transform] duration-300 ease-in-out fixed top-0 right-0 h-full z-50 md:relative md:h-auto",
-        "overflow-hidden",
-        open ? "w-full md:w-1/2 translate-x-0" : "w-0 md:w-0 translate-x-full",
-      )}
-      style={{ height: "100%" }}
-    >
-      {/* Header */}
+    <div className={cn(
+      "flex flex-col border-l bg-background transition-[width,transform] duration-300 ease-in-out fixed top-0 right-0 h-full z-50 md:relative",
+      open ? "w-full md:w-1/2 translate-x-0" : "w-0 md:w-0 translate-x-full",
+      "overflow-hidden"
+    )}>
       <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-semibold">Notes</span>
+          <span className="text-sm font-semibold">
+            {isEditing ? (
+              <Button variant="outline" size="sm" onClick={exitEditMode} className="h-7 gap-1">
+                Exit Edit Mode <X className="h-3 w-3" />
+              </Button>
+            ) : "Notes"}
+          </span>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <button onClick={onClose}><X className="h-4 w-4" /></button>
       </div>
 
-      {/* Title input */}
       <input
-        type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Title"
-        className="px-4 pt-5 pb-1 text-base font-semibold bg-transparent border-none outline-none placeholder:text-muted-foreground/30 shrink-0"
+        className="px-4 pt-5 pb-1 text-base font-semibold bg-transparent outline-none"
       />
 
-      {/* Formatting toolbar */}
-      <div className="flex items-center gap-0.5 px-3 pb-1 shrink-0 border-b">
-        <ToolbarButton
-          title="Bold (⌘B)"
-          onClick={() => editor.tf.bold?.toggle()}
-        >
-          <Bold className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Italic (⌘I)"
-          onClick={() => editor.tf.italic?.toggle()}
-        >
-          <Italic className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Heading 1"
-          onClick={() => editor.tf.h1?.toggle()}
-        >
-          <Heading1 className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Heading 2"
-          onClick={() => editor.tf.h2?.toggle()}
-        >
-          <Heading2 className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Bullet list"
-          onClick={() => toggleList(editor, { type: BulletedListPlugin.key })}
-        >
-          <List className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Inline code"
-          onClick={() => editor.tf.code?.toggle()}
-        >
-          <Code className="h-3.5 w-3.5" />
-        </ToolbarButton>
+      <div className="flex items-center gap-1 px-3 pb-1 border-b">
+        <ToolbarButton title="Bold" onClick={() => editor.tf.bold?.toggle()}><Bold className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton title="Italic" onClick={() => editor.tf.italic?.toggle()}><Italic className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton title="H1" onClick={() => editor.tf.h1?.toggle()}><Heading1 className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton title="H2" onClick={() => editor.tf.h2?.toggle()}><Heading2 className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton title="List" onClick={() => toggleList(editor, { type: BulletedListPlugin.key })}><List className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton title="Code" onClick={() => editor.tf.code?.toggle()}><Code className="h-3.5 w-3.5" /></ToolbarButton>
       </div>
 
-      {/* Plate editor */}
       <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
         <Plate editor={editor} onChange={handleChange as any}>
-          <PlateContent
-            className={cn(
-              "flex-1 px-4 py-3 text-sm bg-transparent border-none outline-none resize-none leading-relaxed min-h-full",
-              // Basic prose styles for headings, bold, etc.
-              "[&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-1",
-              "[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mb-1",
-              "[&_h3]:text-base [&_h3]:font-semibold [&_h3]:mb-0.5",
-              "[&_strong]:font-semibold",
-              "[&_em]:italic",
-              "[&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground/30 [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground",
-              "[&_code]:bg-muted [&_code]:rounded [&_code]:px-1 [&_code]:text-xs [&_code]:font-mono",
-              "[&_ul]:list-disc [&_ul]:pl-5",
-              "[&_ol]:list-decimal [&_ol]:pl-5",
-            )}
-            placeholder="Start writing your note..."
-            spellCheck
-          />
+          <PlateContent className="flex-1 px-4 py-3 text-sm min-h-full outline-none" />
         </Plate>
       </div>
 
-      {/* Footer */}
-      <div className="px-4 py-3 border-t shrink-0 flex items-center justify-between gap-3">
-        <div className="flex flex-col gap-1 flex-1 min-w-0">
-          {errorMsg ? (
-            <p className="text-xs text-destructive break-words">{errorMsg}</p>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              {uploadState === "done"
-                ? "Added to group sources ✓"
-                : uploadState === "error"
-                  ? "Upload failed — try again"
-                  : "Save as group source"}
-            </p>
-          )}
+      <div className="px-4 py-3 border-t flex justify-between items-center">
+        <div className="text-xs text-muted-foreground">
+          {loadingFile ? "Loading..." : isEditing ? "Editing source" : "New note"}
         </div>
         <button
           onClick={handleAddAsSource}
           disabled={isEmpty || uploadState === "uploading" || uploadState === "done"}
           className={cn(
-            "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors shrink-0",
-            uploadState === "done"
-              ? "bg-green-500/15 text-green-600"
-              : isEmpty || uploadState === "uploading"
-                ? "bg-muted text-muted-foreground cursor-not-allowed"
-                : "bg-primary text-primary-foreground hover:bg-primary/90",
+            "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+            uploadState === "done" ? "bg-green-500/15 text-green-600" : "bg-primary text-primary-foreground hover:bg-primary/90"
           )}
         >
-          {uploadState === "done" ? (
-            <>
-              <CheckCircle2 className="h-3.5 w-3.5" /> Added
-            </>
-          ) : uploadState === "uploading" ? (
-            <>
-              <Upload className="h-3.5 w-3.5 animate-bounce" /> Uploading...
-            </>
-          ) : (
-            <>
-              <Upload className="h-3.5 w-3.5" /> Add as source
-            </>
-          )}
+          {uploadState === "done" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Upload className="h-3.5 w-3.5" />}
+          {uploadState === "done" ? "Added" : uploadState === "uploading" ? "Uploading..." : isEditing ? "Update source" : "Add as source"}
         </button>
       </div>
     </div>

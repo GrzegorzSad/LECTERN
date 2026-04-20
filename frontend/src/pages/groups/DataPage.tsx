@@ -43,6 +43,7 @@ import {
   ArrowUp,
   ArrowUpDown,
   Cloud,
+  Edit2,
   HardDriveUpload,
   MoreHorizontal,
   Trash2,
@@ -230,6 +231,8 @@ export function DataPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     if (!id) return;
     Promise.all([documentsApi.get(Number(id)), membersApi.list(Number(id))])
@@ -336,6 +339,13 @@ export function DataPage() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="left" align="end" className="w-32">
+                  <DropdownMenuItem
+                    className="text"
+                    onClick={() => navigate(`/group/${id}/chat`, { state: { previewUrl: row.original.previewUrl, fileId: row.original.id, fileName: row.original.name } })}
+                  >
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     className="text-destructive"
                     onClick={() => setConfirmId(file.id)}
