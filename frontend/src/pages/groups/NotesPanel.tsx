@@ -93,7 +93,7 @@ export function NotesPanel({
   fileName,
   onExitEditMode,
 }: NotesPanelProps) {
-  // --- Persisted Metadata ---
+  // --- Persisted Metadata State ---
   const [editingFileId, setEditingFileId] = useState<number | null>(null);
   const [editingFileName, setEditingFileName] = useState<string | undefined>(undefined);
   const [activePreviewUrl, setActivePreviewUrl] = useState<string | undefined>(undefined);
@@ -121,23 +121,35 @@ export function NotesPanel({
     value: [{ type: "p", children: [{ text: "" }] }] 
   });
 
-  // 1. Initialize from Cache OR Props on mount/groupId change
+  // 1. Sync Props to State: Detects if we are switching to a DIFFERENT file
   useEffect(() => {
-    const cachedMeta = localStorage.getItem(`${NOTE_METADATA_KEY}-${groupId}`);
-    if (cachedMeta) {
-      const parsed = JSON.parse(cachedMeta);
-      setEditingFileId(parsed.fileId);
-      setEditingFileName(parsed.fileName);
-      setActivePreviewUrl(parsed.previewUrl);
-    } else if (fileId) {
-      setEditingFileId(fileId);
+    const isNewFileProps = fileId !== undefined && fileId !== editingFileId;
+
+    if (isNewFileProps) {
+      // OVERWRITE cache because we have moved to a specific new file
+      const meta = { fileId, fileName, previewUrl };
+      localStorage.setItem(`${NOTE_METADATA_KEY}-${groupId}`, JSON.stringify(meta));
+      
+      // Clear specific content cache so the loader is forced to fetch the new file
+      localStorage.removeItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
+      localStorage.removeItem(`${NOTE_CACHE_KEY}-title-${groupId}`);
+
+      setEditingFileId(fileId!);
       setEditingFileName(fileName);
       setActivePreviewUrl(previewUrl);
-      localStorage.setItem(`${NOTE_METADATA_KEY}-${groupId}`, JSON.stringify({ fileId, fileName, previewUrl }));
+    } else if (!editingFileId) {
+      // Fallback: Restore session from localStorage if no props but group matches
+      const cachedMeta = localStorage.getItem(`${NOTE_METADATA_KEY}-${groupId}`);
+      if (cachedMeta) {
+        const parsed = JSON.parse(cachedMeta);
+        setEditingFileId(parsed.fileId);
+        setEditingFileName(parsed.fileName);
+        setActivePreviewUrl(parsed.previewUrl);
+      }
     }
-  }, [groupId, fileId, fileName, previewUrl]);
+  }, [groupId, fileId, fileName, previewUrl, editingFileId]);
 
-  // 2. Load Content Logic
+  // 2. Load Content into Editor
   useEffect(() => {
     let cancelled = false;
 
@@ -149,12 +161,10 @@ export function NotesPanel({
         let contentToSet = "";
         let titleToSet = "";
 
-        // Check if we have a draft for this specific group
         const cachedContent = localStorage.getItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
         const cachedTitle = localStorage.getItem(`${NOTE_CACHE_KEY}-title-${groupId}`);
 
         if (isEditing && activePreviewUrl) {
-          // If we are editing, only use cache if it exists, otherwise FETCH
           if (cachedContent) {
             contentToSet = cachedContent;
             titleToSet = cachedTitle || (editingFileName ? stripExtension(editingFileName) : "");
@@ -164,18 +174,19 @@ export function NotesPanel({
             titleToSet = editingFileName ? stripExtension(editingFileName) : "";
           }
         } else {
-          // New Note Mode
+          // Normal Note Mode
           contentToSet = cachedContent || "";
           titleToSet = cachedTitle || "";
         }
 
         if (!cancelled) {
           setTitle(titleToSet);
+          // Ensure we provide at least a space to avoid Plate empty-node issues
           const nodes = editor.api.markdown.deserialize(contentToSet || " ");
           editor.tf.setValue(nodes);
         }
       } catch (err) {
-        console.error("Load failed", err);
+        console.error("Failed to load content", err);
       } finally {
         if (!cancelled) setLoadingFile(false);
       }
@@ -183,7 +194,7 @@ export function NotesPanel({
 
     loadContent();
     return () => { cancelled = true; };
-  }, [groupId, activePreviewUrl, isEditing, editor, editingFileName]);
+  }, [groupId, activePreviewUrl, isEditing, editor, editingFileName, editingFileId]);
 
   const clearPersistence = useCallback(() => {
     localStorage.removeItem(`${NOTE_METADATA_KEY}-${groupId}`);
@@ -210,11 +221,10 @@ export function NotesPanel({
     if (editor) {
       const md = editor.api.markdown.serialize();
       localStorage.setItem(`${NOTE_CACHE_KEY}-content-${groupId}`, md);
-      localStorage.setItem(`${NOTE_CACHE_KEY}-title-${groupId}`, title);
     }
-  }, [groupId, editor, title]);
+  }, [groupId, editor]);
 
-  // Sync title to storage manually when it changes
+  // Keep title synced to storage
   useEffect(() => {
     localStorage.setItem(`${NOTE_CACHE_KEY}-title-${groupId}`, title);
   }, [title, groupId]);
@@ -224,7 +234,8 @@ export function NotesPanel({
 
     setLocked(true);
     setUploadState("uploading");
-    
+    setErrorMsg(null);
+
     try {
       const markdownContent = editor.api.markdown.serialize();
       const filename = `${title.trim() || "note"}.md`;
@@ -251,7 +262,6 @@ export function NotesPanel({
       setUploadState("done");
 
       setTimeout(() => {
-        // FULL RESET
         clearPersistence();
         setEditingFileId(null);
         setEditingFileName(undefined);
@@ -293,10 +303,10 @@ export function NotesPanel({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Title"
-        className="px-4 pt-5 pb-1 text-base font-semibold bg-transparent outline-none"
+        className="px-4 pt-5 pb-1 text-base font-semibold bg-transparent outline-none shrink-0"
       />
 
-      <div className="flex items-center gap-1 px-3 pb-1 border-b">
+      <div className="flex items-center gap-1 px-3 pb-1 border-b shrink-0">
         <ToolbarButton title="Bold" onClick={() => editor.tf.bold?.toggle()}><Bold className="h-3.5 w-3.5" /></ToolbarButton>
         <ToolbarButton title="Italic" onClick={() => editor.tf.italic?.toggle()}><Italic className="h-3.5 w-3.5" /></ToolbarButton>
         <ToolbarButton title="H1" onClick={() => editor.tf.h1?.toggle()}><Heading1 className="h-3.5 w-3.5" /></ToolbarButton>
@@ -311,21 +321,24 @@ export function NotesPanel({
         </Plate>
       </div>
 
-      <div className="px-4 py-3 border-t flex justify-between items-center">
+      <div className="px-4 py-3 border-t flex justify-between items-center shrink-0">
         <div className="text-xs text-muted-foreground">
           {loadingFile ? "Loading..." : isEditing ? "Editing source" : "New note"}
         </div>
-        <button
-          onClick={handleAddAsSource}
-          disabled={isEmpty || uploadState === "uploading" || uploadState === "done"}
-          className={cn(
-            "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-            uploadState === "done" ? "bg-green-500/15 text-green-600" : "bg-primary text-primary-foreground hover:bg-primary/90"
-          )}
-        >
-          {uploadState === "done" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Upload className="h-3.5 w-3.5" />}
-          {uploadState === "done" ? "Added" : uploadState === "uploading" ? "Uploading..." : isEditing ? "Update source" : "Add as source"}
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={handleAddAsSource}
+            disabled={isEmpty || uploadState === "uploading" || uploadState === "done"}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              uploadState === "done" ? "bg-green-500/15 text-green-600" : "bg-primary text-primary-foreground hover:bg-primary/90"
+            )}
+          >
+            {uploadState === "done" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Upload className="h-3.5 w-3.5" />}
+            {uploadState === "done" ? "Added" : uploadState === "uploading" ? "Uploading..." : isEditing ? "Update source" : "Add as source"}
+          </button>
+          {errorMsg && <p className="text-[10px] text-destructive">{errorMsg}</p>}
+        </div>
       </div>
     </div>
   );
