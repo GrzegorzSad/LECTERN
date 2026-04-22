@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   X,
   FileText,
@@ -18,7 +18,6 @@ import {
   Plate,
   usePlateEditor,
   PlateContent,
-  type PlateEditor,
 } from "platejs/react";
 import type { Value } from "platejs";
 import {
