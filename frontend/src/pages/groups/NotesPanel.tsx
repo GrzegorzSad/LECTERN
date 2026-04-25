@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   X,
   FileText,
@@ -14,11 +14,7 @@ import {
 import { cn } from "../../lib/utils";
 import { BASE_URL } from "../../api/client";
 
-import {
-  Plate,
-  usePlateEditor,
-  PlateContent,
-} from "platejs/react";
+import { Plate, usePlateEditor, PlateContent } from "platejs/react";
 import type { Value } from "platejs";
 import {
   BoldPlugin,
@@ -94,10 +90,15 @@ export function NotesPanel({
 }: NotesPanelProps) {
   // --- Persisted Metadata State ---
   const [editingFileId, setEditingFileId] = useState<number | null>(null);
-  const [editingFileName, setEditingFileName] = useState<string | undefined>(undefined);
-  const [activePreviewUrl, setActivePreviewUrl] = useState<string | undefined>(undefined);
+  const [editingFileName, setEditingFileName] = useState<string | undefined>(
+    undefined,
+  );
+  const [activePreviewUrl, setActivePreviewUrl] = useState<string | undefined>(
+    undefined,
+  );
 
   const isEditing = !!editingFileId;
+  const userExited = useRef(false);
 
   // --- UI State ---
   const [title, setTitle] = useState("");
@@ -108,27 +109,46 @@ export function NotesPanel({
   const [locked, setLocked] = useState(false);
 
   // --- Editor Setup ---
-  const plugins = useMemo(() => [
-    BoldPlugin, ItalicPlugin, UnderlinePlugin, StrikethroughPlugin,
-    CodePlugin, H1Plugin, H2Plugin, H3Plugin, BlockquotePlugin,
-    BulletedListPlugin, NumberedListPlugin, ListItemPlugin,
-    MarkdownPlugin,
-  ], []);
+  const plugins = useMemo(
+    () => [
+      BoldPlugin,
+      ItalicPlugin,
+      UnderlinePlugin,
+      StrikethroughPlugin,
+      CodePlugin,
+      H1Plugin,
+      H2Plugin,
+      H3Plugin,
+      BlockquotePlugin,
+      BulletedListPlugin,
+      NumberedListPlugin,
+      ListItemPlugin,
+      MarkdownPlugin,
+    ],
+    [],
+  );
 
-  const editor = usePlateEditor({ 
+  const editor = usePlateEditor({
     plugins,
-    value: [{ type: "p", children: [{ text: "" }] }] 
+    value: [{ type: "p", children: [{ text: "" }] }],
   });
 
   // 1. Sync Props to State: Detects if we are switching to a DIFFERENT file
   useEffect(() => {
+    if (userExited.current) {
+      userExited.current = false;
+      return;
+    }
     const isNewFileProps = fileId !== undefined && fileId !== editingFileId;
 
     if (isNewFileProps) {
       // OVERWRITE cache because we have moved to a specific new file
       const meta = { fileId, fileName, previewUrl };
-      localStorage.setItem(`${NOTE_METADATA_KEY}-${groupId}`, JSON.stringify(meta));
-      
+      localStorage.setItem(
+        `${NOTE_METADATA_KEY}-${groupId}`,
+        JSON.stringify(meta),
+      );
+
       // Clear specific content cache so the loader is forced to fetch the new file
       localStorage.removeItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
       localStorage.removeItem(`${NOTE_CACHE_KEY}-title-${groupId}`);
@@ -138,7 +158,9 @@ export function NotesPanel({
       setActivePreviewUrl(previewUrl);
     } else if (!editingFileId) {
       // Fallback: Restore session from localStorage if no props but group matches
-      const cachedMeta = localStorage.getItem(`${NOTE_METADATA_KEY}-${groupId}`);
+      const cachedMeta = localStorage.getItem(
+        `${NOTE_METADATA_KEY}-${groupId}`,
+      );
       if (cachedMeta) {
         const parsed = JSON.parse(cachedMeta);
         setEditingFileId(parsed.fileId);
@@ -160,13 +182,19 @@ export function NotesPanel({
         let contentToSet = "";
         let titleToSet = "";
 
-        const cachedContent = localStorage.getItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
-        const cachedTitle = localStorage.getItem(`${NOTE_CACHE_KEY}-title-${groupId}`);
+        const cachedContent = localStorage.getItem(
+          `${NOTE_CACHE_KEY}-content-${groupId}`,
+        );
+        const cachedTitle = localStorage.getItem(
+          `${NOTE_CACHE_KEY}-title-${groupId}`,
+        );
 
         if (isEditing && activePreviewUrl) {
           if (cachedContent) {
             contentToSet = cachedContent;
-            titleToSet = cachedTitle || (editingFileName ? stripExtension(editingFileName) : "");
+            titleToSet =
+              cachedTitle ||
+              (editingFileName ? stripExtension(editingFileName) : "");
           } else {
             const res = await fetch(activePreviewUrl);
             contentToSet = await res.text();
@@ -192,8 +220,17 @@ export function NotesPanel({
     };
 
     loadContent();
-    return () => { cancelled = true; };
-  }, [groupId, activePreviewUrl, isEditing, editor, editingFileName, editingFileId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    groupId,
+    activePreviewUrl,
+    isEditing,
+    editor,
+    editingFileName,
+    editingFileId,
+  ]);
 
   const clearPersistence = useCallback(() => {
     localStorage.removeItem(`${NOTE_METADATA_KEY}-${groupId}`);
@@ -202,6 +239,7 @@ export function NotesPanel({
   }, [groupId]);
 
   const exitEditMode = () => {
+    userExited.current = true;
     clearPersistence();
     setEditingFileId(null);
     setEditingFileName(undefined);
@@ -211,17 +249,20 @@ export function NotesPanel({
     editor.tf.setValue([{ type: "p", children: [{ text: "" }] }]);
   };
 
-  const handleChange = useCallback(({ value }: { value: Value }) => {
-    const hasContent = value.some((node: any) => 
-      node.children?.some((c: any) => c.text?.trim().length > 0)
-    );
-    setIsEmpty(!hasContent);
+  const handleChange = useCallback(
+    ({ value }: { value: Value }) => {
+      const hasContent = value.some((node: any) =>
+        node.children?.some((c: any) => c.text?.trim().length > 0),
+      );
+      setIsEmpty(!hasContent);
 
-    if (editor) {
-      const md = editor.api.markdown.serialize();
-      localStorage.setItem(`${NOTE_CACHE_KEY}-content-${groupId}`, md);
-    }
-  }, [groupId, editor]);
+      if (editor) {
+        const md = editor.api.markdown.serialize();
+        localStorage.setItem(`${NOTE_CACHE_KEY}-content-${groupId}`, md);
+      }
+    },
+    [groupId, editor],
+  );
 
   // Keep title synced to storage
   useEffect(() => {
@@ -247,7 +288,11 @@ export function NotesPanel({
       }
 
       const formData = new FormData();
-      formData.append("file", new Blob([markdownContent], { type: "text/markdown" }), filename);
+      formData.append(
+        "file",
+        new Blob([markdownContent], { type: "text/markdown" }),
+        filename,
+      );
       formData.append("groupId", String(groupId));
 
       const res = await fetch(`${BASE_URL}/documents/upload`, {
@@ -261,6 +306,8 @@ export function NotesPanel({
       setUploadState("done");
 
       setTimeout(() => {
+        userExited.current = true;
+        onExitEditMode?.();
         clearPersistence();
         setEditingFileId(null);
         setEditingFileName(undefined);
@@ -274,28 +321,42 @@ export function NotesPanel({
     } catch (err: any) {
       setUploadState("error");
       setErrorMsg(err.message);
-      setTimeout(() => { setUploadState("idle"); setLocked(false); }, 3000);
+      setTimeout(() => {
+        setUploadState("idle");
+        setLocked(false);
+      }, 3000);
     }
   };
 
   return (
-    <div className={cn(
-      "flex flex-col border-l bg-background transition-[width,transform] duration-300 ease-in-out fixed top-0 right-0 h-full z-50 md:relative",
-      open ? "w-full md:w-1/2 translate-x-0" : "w-0 md:w-0 translate-x-full",
-      "overflow-hidden"
-    )}>
+    <div
+      className={cn(
+        "flex flex-col border-l bg-background transition-[width,transform] duration-300 ease-in-out fixed top-0 right-0 h-full z-50 md:relative",
+        open ? "w-full md:w-1/2 translate-x-0" : "w-0 md:w-0 translate-x-full",
+        "overflow-hidden",
+      )}
+    >
       <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-semibold">
             {isEditing ? (
-              <Button variant="outline" size="sm" onClick={exitEditMode} className="h-7 gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exitEditMode}
+                className="h-7 gap-1"
+              >
                 Exit Edit Mode <X className="h-3 w-3" />
               </Button>
-            ) : "Notes"}
+            ) : (
+              "Notes"
+            )}
           </span>
         </div>
-        <button onClick={onClose}><X className="h-4 w-4" /></button>
+        <button onClick={onClose}>
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <input
@@ -306,12 +367,30 @@ export function NotesPanel({
       />
 
       <div className="flex items-center gap-1 px-3 pb-1 border-b shrink-0">
-        <ToolbarButton title="Bold" onClick={() => editor.tf.bold?.toggle()}><Bold className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton title="Italic" onClick={() => editor.tf.italic?.toggle()}><Italic className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton title="H1" onClick={() => editor.tf.h1?.toggle()}><Heading1 className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton title="H2" onClick={() => editor.tf.h2?.toggle()}><Heading2 className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton title="List" onClick={() => toggleList(editor, { type: BulletedListPlugin.key })}><List className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton title="Code" onClick={() => editor.tf.code?.toggle()}><Code className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton title="Bold" onClick={() => editor.tf.bold?.toggle()}>
+          <Bold className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Italic"
+          onClick={() => editor.tf.italic?.toggle()}
+        >
+          <Italic className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton title="H1" onClick={() => editor.tf.h1?.toggle()}>
+          <Heading1 className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton title="H2" onClick={() => editor.tf.h2?.toggle()}>
+          <Heading2 className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton
+          title="List"
+          onClick={() => toggleList(editor, { type: BulletedListPlugin.key })}
+        >
+          <List className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton title="Code" onClick={() => editor.tf.code?.toggle()}>
+          <Code className="h-3.5 w-3.5" />
+        </ToolbarButton>
       </div>
 
       <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
@@ -322,21 +401,41 @@ export function NotesPanel({
 
       <div className="px-4 py-3 border-t flex justify-between items-center shrink-0">
         <div className="text-xs text-muted-foreground">
-          {loadingFile ? "Loading..." : isEditing ? "Editing source" : "New note"}
+          {loadingFile
+            ? "Loading..."
+            : isEditing
+              ? "Editing source"
+              : "New note"}
         </div>
         <div className="flex flex-col items-end gap-1">
           <button
             onClick={handleAddAsSource}
-            disabled={isEmpty || uploadState === "uploading" || uploadState === "done"}
+            disabled={
+              isEmpty || uploadState === "uploading" || uploadState === "done"
+            }
             className={cn(
               "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-              uploadState === "done" ? "bg-green-500/15 text-green-600" : "bg-primary text-primary-foreground hover:bg-primary/90"
+              uploadState === "done"
+                ? "bg-green-500/15 text-green-600"
+                : "bg-primary text-primary-foreground hover:bg-primary/90",
             )}
           >
-            {uploadState === "done" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Upload className="h-3.5 w-3.5" />}
-            {uploadState === "done" ? "Added" : uploadState === "uploading" ? "Uploading..." : isEditing ? "Update source" : "Add as source"}
+            {uploadState === "done" ? (
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            ) : (
+              <Upload className="h-3.5 w-3.5" />
+            )}
+            {uploadState === "done"
+              ? "Added"
+              : uploadState === "uploading"
+                ? "Uploading..."
+                : isEditing
+                  ? "Update source"
+                  : "Add as source"}
           </button>
-          {errorMsg && <p className="text-[10px] text-destructive">{errorMsg}</p>}
+          {errorMsg && (
+            <p className="text-[10px] text-destructive">{errorMsg}</p>
+          )}
         </div>
       </div>
     </div>
