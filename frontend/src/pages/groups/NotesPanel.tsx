@@ -15,6 +15,7 @@ import { cn } from "../../lib/utils";
 import { BASE_URL } from "../../api/client";
 
 import { Plate, usePlateEditor, PlateContent } from "platejs/react";
+import { KEYS } from "platejs";
 import type { Value } from "platejs";
 import {
   BoldPlugin,
@@ -27,12 +28,9 @@ import {
   H3Plugin,
   BlockquotePlugin,
 } from "@platejs/basic-nodes/react";
-import {
-  BulletedListPlugin,
-  NumberedListPlugin,
-  ListItemPlugin,
-} from "@platejs/list-classic/react";
-import { toggleList } from "@platejs/list-classic";
+import { IndentPlugin } from "@platejs/indent/react";
+import { ListPlugin } from "@platejs/list/react";
+import { toggleList, ListStyleType } from "@platejs/list";
 import { MarkdownPlugin } from "@platejs/markdown";
 import { Button } from "../../components/button";
 
@@ -90,12 +88,8 @@ export function NotesPanel({
 }: NotesPanelProps) {
   // --- Persisted Metadata State ---
   const [editingFileId, setEditingFileId] = useState<number | null>(null);
-  const [editingFileName, setEditingFileName] = useState<string | undefined>(
-    undefined,
-  );
-  const [activePreviewUrl, setActivePreviewUrl] = useState<string | undefined>(
-    undefined,
-  );
+  const [editingFileName, setEditingFileName] = useState<string | undefined>(undefined);
+  const [activePreviewUrl, setActivePreviewUrl] = useState<string | undefined>(undefined);
 
   const isEditing = !!editingFileId;
   const userExited = useRef(false);
@@ -120,10 +114,13 @@ export function NotesPanel({
       H2Plugin,
       H3Plugin,
       BlockquotePlugin,
-      BulletedListPlugin,
-      NumberedListPlugin,
-      ListItemPlugin,
       MarkdownPlugin,
+      IndentPlugin.configure({
+        inject: {
+          targetPlugins: ["h1", "h2", "h3", "p", "blockquote"],
+        },
+      }),
+      ListPlugin,
     ],
     [],
   );
@@ -133,23 +130,30 @@ export function NotesPanel({
     value: [{ type: "p", children: [{ text: "" }] }],
   });
 
+  // Helper to toggle block types (headings etc.)
+  const toggleBlock = useCallback(
+    (type: string) => {
+      const isActive = editor.api.some({ match: { type } });
+      editor.tf.setNodes(
+        { type: isActive ? KEYS.p : type },
+        { match: (n) => editor.api.isBlock(n) },
+      );
+    },
+    [editor],
+  );
+
   // 1. Sync Props to State: Detects if we are switching to a DIFFERENT file
   useEffect(() => {
     if (userExited.current) {
       userExited.current = false;
       return;
     }
+
     const isNewFileProps = fileId !== undefined && fileId !== editingFileId;
 
     if (isNewFileProps) {
-      // OVERWRITE cache because we have moved to a specific new file
       const meta = { fileId, fileName, previewUrl };
-      localStorage.setItem(
-        `${NOTE_METADATA_KEY}-${groupId}`,
-        JSON.stringify(meta),
-      );
-
-      // Clear specific content cache so the loader is forced to fetch the new file
+      localStorage.setItem(`${NOTE_METADATA_KEY}-${groupId}`, JSON.stringify(meta));
       localStorage.removeItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
       localStorage.removeItem(`${NOTE_CACHE_KEY}-title-${groupId}`);
 
@@ -157,10 +161,7 @@ export function NotesPanel({
       setEditingFileName(fileName);
       setActivePreviewUrl(previewUrl);
     } else if (!editingFileId) {
-      // Fallback: Restore session from localStorage if no props but group matches
-      const cachedMeta = localStorage.getItem(
-        `${NOTE_METADATA_KEY}-${groupId}`,
-      );
+      const cachedMeta = localStorage.getItem(`${NOTE_METADATA_KEY}-${groupId}`);
       if (cachedMeta) {
         const parsed = JSON.parse(cachedMeta);
         setEditingFileId(parsed.fileId);
@@ -182,33 +183,25 @@ export function NotesPanel({
         let contentToSet = "";
         let titleToSet = "";
 
-        const cachedContent = localStorage.getItem(
-          `${NOTE_CACHE_KEY}-content-${groupId}`,
-        );
-        const cachedTitle = localStorage.getItem(
-          `${NOTE_CACHE_KEY}-title-${groupId}`,
-        );
+        const cachedContent = localStorage.getItem(`${NOTE_CACHE_KEY}-content-${groupId}`);
+        const cachedTitle = localStorage.getItem(`${NOTE_CACHE_KEY}-title-${groupId}`);
 
         if (isEditing && activePreviewUrl) {
           if (cachedContent) {
             contentToSet = cachedContent;
-            titleToSet =
-              cachedTitle ||
-              (editingFileName ? stripExtension(editingFileName) : "");
+            titleToSet = cachedTitle || (editingFileName ? stripExtension(editingFileName) : "");
           } else {
             const res = await fetch(activePreviewUrl);
             contentToSet = await res.text();
             titleToSet = editingFileName ? stripExtension(editingFileName) : "";
           }
         } else {
-          // Normal Note Mode
           contentToSet = cachedContent || "";
           titleToSet = cachedTitle || "";
         }
 
         if (!cancelled) {
           setTitle(titleToSet);
-          // Ensure we provide at least a space to avoid Plate empty-node issues
           const nodes = editor.api.markdown.deserialize(contentToSet || " ");
           editor.tf.setValue(nodes);
         }
@@ -223,14 +216,7 @@ export function NotesPanel({
     return () => {
       cancelled = true;
     };
-  }, [
-    groupId,
-    activePreviewUrl,
-    isEditing,
-    editor,
-    editingFileName,
-    editingFileId,
-  ]);
+  }, [groupId, activePreviewUrl, isEditing, editor, editingFileName, editingFileId]);
 
   const clearPersistence = useCallback(() => {
     localStorage.removeItem(`${NOTE_METADATA_KEY}-${groupId}`);
@@ -367,28 +353,28 @@ export function NotesPanel({
       />
 
       <div className="flex items-center gap-1 px-3 pb-1 border-b shrink-0">
-        <ToolbarButton title="Bold" onClick={() => editor.tf.bold?.toggle()}>
+        <ToolbarButton
+          title="Bold"
+          onClick={() => editor.tf.toggleMark(KEYS.bold as any)}
+        >
           <Bold className="h-3.5 w-3.5" />
         </ToolbarButton>
         <ToolbarButton
           title="Italic"
-          onClick={() => editor.tf.italic?.toggle()}
+          onClick={() => editor.tf.toggleMark(KEYS.italic as any)}
         >
           <Italic className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton title="H1" onClick={() => editor.tf.h1?.toggle()}>
-          <Heading1 className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton title="H2" onClick={() => editor.tf.h2?.toggle()}>
-          <Heading2 className="h-3.5 w-3.5" />
-        </ToolbarButton>
         <ToolbarButton
           title="List"
-          onClick={() => toggleList(editor, { type: BulletedListPlugin.key })}
+          onClick={() => toggleList(editor, { listStyleType: ListStyleType.Disc })}
         >
           <List className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton title="Code" onClick={() => editor.tf.code?.toggle()}>
+        <ToolbarButton
+          title="Code"
+          onClick={() => editor.tf.toggleMark(KEYS.code as any)}
+        >
           <Code className="h-3.5 w-3.5" />
         </ToolbarButton>
       </div>
@@ -401,18 +387,12 @@ export function NotesPanel({
 
       <div className="px-4 py-3 border-t flex justify-between items-center shrink-0">
         <div className="text-xs text-muted-foreground">
-          {loadingFile
-            ? "Loading..."
-            : isEditing
-              ? "Editing source"
-              : "New note"}
+          {loadingFile ? "Loading..." : isEditing ? "Editing source" : "New note"}
         </div>
         <div className="flex flex-col items-end gap-1">
           <button
             onClick={handleAddAsSource}
-            disabled={
-              isEmpty || uploadState === "uploading" || uploadState === "done"
-            }
+            disabled={isEmpty || uploadState === "uploading" || uploadState === "done"}
             className={cn(
               "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
               uploadState === "done"
@@ -433,9 +413,7 @@ export function NotesPanel({
                   ? "Update source"
                   : "Add as source"}
           </button>
-          {errorMsg && (
-            <p className="text-[10px] text-destructive">{errorMsg}</p>
-          )}
+          {errorMsg && <p className="text-[10px] text-destructive">{errorMsg}</p>}
         </div>
       </div>
     </div>

@@ -22,6 +22,7 @@ import {
   PanelLeftOpen,
   Pin,
   PanelRight,
+  Trash2Icon,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Sheet, SheetContent, SheetTrigger } from "../../components/sheet";
@@ -171,7 +172,7 @@ function PinnedMessagesPopover({
                     className="shrink-0 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
                     title="Unpin message"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <Trash2Icon className="h-3.5 w-3.5" />
                   </button>
                 )}
               </div>
