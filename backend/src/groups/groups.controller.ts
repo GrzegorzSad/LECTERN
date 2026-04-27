@@ -14,6 +14,9 @@ import { GroupsService } from './groups.service';
 import { SessionAuthGuard } from 'src/middleware/middleware.authguard';
 import { CreateGroupDto } from './dto/create-group.dto';
 import type { Request } from 'express';
+import { UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { type Express } from 'express';
 
 @Controller('Groups')
 export class GroupsController {
@@ -24,6 +27,16 @@ export class GroupsController {
   create(@Body() dto: CreateGroupDto, @Req() req: Request) {
     const userId = req.session.user!.id;
     return this.groupsService.createGroup(dto.name, userId, dto.img);
+  }
+
+  @UseGuards(SessionAuthGuard)
+  @Post(':id/image')
+  @UseInterceptors(FileInterceptor('file'))
+  updateImage(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.groupsService.uploadGroupImage(id, file);
   }
 
   @UseGuards(SessionAuthGuard)

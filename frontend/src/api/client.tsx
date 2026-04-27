@@ -18,7 +18,8 @@ import type {
   PrivateChat,
 } from "../types/types";
 
-export const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+export const BASE_URL =
+  import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -89,6 +90,18 @@ export const groupsApi = {
     request<{ token: string }>(`/Groups/${id}/invite`, { method: "POST" }),
   joinByToken: (token: string) =>
     request<Group>(`/Groups/join/${token}`, { method: "POST" }),
+  uploadImage: (id: number, file?: File) => {
+    const formData = new FormData();
+    if (file) formData.append("file", file);
+    return fetch(`${BASE_URL}/Groups/${id}/image`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json() as Promise<Group>;
+    });
+  },
 };
 
 // --- Members ---
@@ -176,9 +189,12 @@ export const messagesApi = {
     }),
   // NEW: pin a message in a private chat
   pinPrivate: (privateChatId: number, messageId: number) =>
-    request<Message>(`/private-chats/${privateChatId}/messages/${messageId}/pin`, {
-      method: "PATCH",
-    }),
+    request<Message>(
+      `/private-chats/${privateChatId}/messages/${messageId}/pin`,
+      {
+        method: "PATCH",
+      },
+    ),
 };
 
 // --- Private Chats ---

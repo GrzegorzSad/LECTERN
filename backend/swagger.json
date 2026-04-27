@@ -1070,6 +1070,29 @@
         ]
       }
     },
+    "/Groups/{id}/image": {
+      "post": {
+        "operationId": "GroupsController_updateImage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
     "/Groups/{id}": {
       "get": {
         "operationId": "GroupsController_findOne",

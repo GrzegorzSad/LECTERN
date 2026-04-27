@@ -1,11 +1,70 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { randomBytes } from 'crypto';
 import { NotFoundException } from '@nestjs/common';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { randomUUID } from 'crypto';
+import * as path from 'path';
 
 @Injectable()
 export class GroupsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private supabase: SupabaseClient;
+  private bucket: string;
+  constructor(private readonly prisma: PrismaService) {
+    this.supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!,
+    );
+    this.bucket = process.env.SUPABASE_BUCKET ?? 'documents';
+  }
+
+  async uploadGroupImage(groupId: number, file?: Express.Multer.File) {
+    const existing = await this.prisma.group.findUnique({
+      where: { id: groupId },
+    });
+
+    if (existing?.img) {
+      await this.deleteImageFromStorage(existing.img);
+    }
+
+    if (!file) {
+      return this.prisma.group.update({
+        where: { id: groupId },
+        data: { img: null },
+      });
+    }
+
+    const ext = path.extname(file.originalname);
+    const key = `group-images/${randomUUID()}${ext}`;
+
+    const { error } = await this.supabase.storage
+      .from(this.bucket)
+      .upload(key, file.buffer, { contentType: file.mimetype, upsert: false });
+
+    if (error)
+      throw new BadRequestException(`Failed to upload image: ${error.message}`);
+
+    const { data: urlData } = this.supabase.storage
+      .from(this.bucket)
+      .getPublicUrl(key);
+
+    return this.prisma.group.update({
+      where: { id: groupId },
+      data: { img: urlData.publicUrl },
+    });
+  }
+
+  private async deleteImageFromStorage(imgUrl: string) {
+    const marker = `/object/public/${this.bucket}/`;
+    const idx = imgUrl.indexOf(marker);
+    if (idx === -1) return;
+    const key = imgUrl.slice(idx + marker.length);
+    const { error } = await this.supabase.storage
+      .from(this.bucket)
+      .remove([key]);
+    if (error)
+      console.error(`Failed to delete old group image: ${error.message}`);
+  }
 
   async createGroup(name: string, creatorUserId: number, img?: string) {
     return this.prisma.$transaction(async (prisma) => {

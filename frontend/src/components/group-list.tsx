@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Group } from "../types/types";
 import { groupsApi } from "../api/client";
@@ -50,8 +50,10 @@ export function GroupList({ groups }: { groups: Group[] }) {
   const [dialogMode, setDialogMode] = useState<DialogMode>("create");
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [groupName, setGroupName] = useState("");
-  const [groupImg, setGroupImg] = useState("");
+  const [groupImgFile, setGroupImgFile] = useState<File | null>(null);
+  const [groupImgPreview, setGroupImgPreview] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { myRoles } = useGroups();
 
   const handleClick = (group: Group) => {
@@ -62,30 +64,40 @@ export function GroupList({ groups }: { groups: Group[] }) {
     setDialogMode("create");
     setEditingGroup(null);
     setGroupName("");
-    setGroupImg("");
+    setGroupImgFile(null);
+    setGroupImgPreview("");
     setDialogOpen(true);
   };
 
-  // Listen for global event to open create group dialog
   useEffect(() => {
     const handler = () => openCreateDialog();
-    window.addEventListener('open-create-group-dialog', handler);
-    return () => window.removeEventListener('open-create-group-dialog', handler);
+    window.addEventListener("open-create-group-dialog", handler);
+    return () =>
+      window.removeEventListener("open-create-group-dialog", handler);
   }, []);
 
   const openEditDialog = (group: Group) => {
     setDialogMode("edit");
     setEditingGroup(group);
     setGroupName(group.name);
-    setGroupImg(group.img ?? "");
+    setGroupImgFile(null);
+    setGroupImgPreview(group.img ?? "");
     setDialogOpen(true);
   };
 
   const closeDialog = () => {
     setDialogOpen(false);
     setGroupName("");
-    setGroupImg("");
+    setGroupImgFile(null);
+    setGroupImgPreview("");
     setEditingGroup(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setGroupImgFile(file);
+    setGroupImgPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async () => {
@@ -93,19 +105,38 @@ export function GroupList({ groups }: { groups: Group[] }) {
     setSubmitting(true);
     try {
       if (dialogMode === "create") {
-        const newGroup = await groupsApi.create({
-          name: groupName.trim(),
-          img: groupImg.trim() || undefined,
-        });
-        addGroup(newGroup);
+        const newGroup = await groupsApi.create({ name: groupName.trim() });
+        if (groupImgFile) {
+          const updated = await groupsApi.uploadImage(
+            newGroup.id,
+            groupImgFile,
+          );
+          addGroup(updated);
+        } else {
+          addGroup(newGroup);
+        }
         closeDialog();
         navigate(`/group/${newGroup.id}`);
       } else if (editingGroup) {
         const updated = await groupsApi.update(editingGroup.id, {
           name: groupName.trim(),
-          img: groupImg.trim() || undefined,
         });
-        updateGroup(updated);
+
+        if (groupImgFile) {
+          const withImg = await groupsApi.uploadImage(
+            editingGroup.id,
+            groupImgFile,
+          );
+          updateGroup(withImg);
+        } else if (!groupImgPreview && editingGroup.img) {
+          const withImg = await groupsApi.uploadImage(
+            editingGroup.id,
+            undefined,
+          );
+          updateGroup(withImg);
+        } else {
+          updateGroup(updated);
+        }
         closeDialog();
       }
     } finally {
@@ -118,7 +149,9 @@ export function GroupList({ groups }: { groups: Group[] }) {
       <Sidebar collapsible="icon">
         <SidebarHeader className="flex flex-row items-center justify-between px-2 py-2">
           {!isCollapsed && (
-            <Link to="/"><span className="text-md font-semibold">LECTERN</span></Link>
+            <Link to="/">
+              <span className="text-md font-semibold">LECTERN</span>
+            </Link>
           )}
           <SidebarTrigger />
         </SidebarHeader>
@@ -220,6 +253,8 @@ export function GroupList({ groups }: { groups: Group[] }) {
             <h2 className="text-lg font-semibold">
               {dialogMode === "create" ? "New Group" : "Edit Group"}
             </h2>
+
+            {/* Group name */}
             <div className="space-y-1">
               <label htmlFor="group-name" className="text-sm font-medium">
                 Group name
@@ -234,26 +269,51 @@ export function GroupList({ groups }: { groups: Group[] }) {
                 className="w-full border rounded px-3 py-2 bg-white text-black"
               />
             </div>
+
+            {/* Image upload */}
             <div className="space-y-1">
-              <label htmlFor="group-image" className="text-sm font-medium">
-                Image URL (optional)
-              </label>
+              <label className="text-sm font-medium">Image (optional)</label>
+              <div
+                className="w-full h-28 border-2 border-dashed rounded-md flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden relative"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {groupImgPreview ? (
+                  <img
+                    src={groupImgPreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-muted-foreground pointer-events-none">
+                    <Plus className="h-5 w-5" />
+                    <span className="text-xs">Click to upload</span>
+                  </div>
+                )}
+              </div>
               <input
-                id="group-image"
-                value={groupImg}
-                onChange={(e) => setGroupImg(e.target.value)}
-                placeholder="https://example.com/image.png"
-                className="w-full border rounded px-3 py-2 bg-white text-black"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
               />
+              {groupImgPreview && (
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setGroupImgFile(null);
+                    setGroupImgPreview("");
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                >
+                  Remove image
+                </button>
+              )}
             </div>
-            {groupImg.trim() && (
-              <img
-                src={groupImg.trim()}
-                alt="Preview"
-                className="w-full h-32 object-cover rounded-md"
-                onError={(e) => (e.currentTarget.style.display = "none")}
-              />
-            )}
+
+            {/* Actions */}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={closeDialog}>
                 Cancel
