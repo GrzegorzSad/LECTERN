@@ -230,6 +230,7 @@ export function DataPage() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [previewFile, setPreviewFile] = useState<FileRow | null>(null);
 
   const navigate = useNavigate();
 
@@ -275,14 +276,9 @@ export function DataPage() {
         accessorKey: "name",
         header: ({ column }) => <SortHeader label="Name" column={column} />,
         cell: ({ row }) => (
-          <a
-            href={
-              row.original.previewUrl ??
-              `${BASE_URL}/documents/preview/${row.original.id}`
-            }
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 min-w-0 group/link"
+          <button
+            onClick={() => setPreviewFile(row.original)}
+            className="flex items-center gap-2 min-w-0 group/link text-left"
           >
             <span className="text-sm shrink-0">
               {mimeIcon(row.original.mimeType)}
@@ -290,7 +286,7 @@ export function DataPage() {
             <span className="text-sm font-medium truncate group-hover/link:underline">
               {row.original.name}
             </span>
-          </a>
+          </button>
         ),
       },
       {
@@ -341,7 +337,15 @@ export function DataPage() {
                 <DropdownMenuContent side="left" align="end" className="w-32">
                   <DropdownMenuItem
                     className="text"
-                    onClick={() => navigate(`/group/${id}/chat`, { state: { previewUrl: row.original.previewUrl, fileId: row.original.id, fileName: row.original.name } })}
+                    onClick={() =>
+                      navigate(`/group/${id}/chat`, {
+                        state: {
+                          previewUrl: row.original.previewUrl,
+                          fileId: row.original.id,
+                          fileName: row.original.name,
+                        },
+                      })
+                    }
                   >
                     <Edit2 className="h-4 w-4 mr-2" />
                     Edit
@@ -488,6 +492,64 @@ export function DataPage() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
+      {previewFile && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => setPreviewFile(null)}
+        >
+          <Card
+            className="flex flex-col w-[90vw] h-[90vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <span>{mimeIcon(previewFile.mimeType)}</span>
+                <span className="text-sm font-medium truncate">
+                  {previewFile.name}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setPreviewFile(null);
+                    navigate(`/group/${id}/chat`, {
+                      state: {
+                        previewUrl: previewFile.previewUrl,
+                        fileId: previewFile.id,
+                        fileName: previewFile.name,
+                      },
+                    });
+                  }}
+                >
+                  <Edit2 className="h-4 w-4 mr-2" />
+                  Edit in Note Editor
+                </Button>
+                <button
+                  onClick={() => setPreviewFile(null)}
+                  className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Preview */}
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                src={
+                  previewFile.previewUrl ??
+                  `${BASE_URL}/documents/preview/${previewFile.id}`
+                }
+                className="w-full h-full border-0"
+                title={previewFile.name}
+              />
+            </div>
+          </Card>
+        </div>
+      )}
     </>
   );
 }
