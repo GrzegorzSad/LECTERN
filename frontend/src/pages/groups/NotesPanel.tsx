@@ -6,8 +6,6 @@ import {
   CheckCircle2,
   Bold,
   Italic,
-  Heading1,
-  Heading2,
   List,
   Code,
 } from "lucide-react";
@@ -130,17 +128,6 @@ export function NotesPanel({
     value: [{ type: "p", children: [{ text: "" }] }],
   });
 
-  // Helper to toggle block types (headings etc.)
-  const toggleBlock = useCallback(
-    (type: string) => {
-      const isActive = editor.api.some({ match: { type } });
-      editor.tf.setNodes(
-        { type: isActive ? KEYS.p : type },
-        { match: (n) => editor.api.isBlock(n) },
-      );
-    },
-    [editor],
-  );
 
   // 1. Sync Props to State: Detects if we are switching to a DIFFERENT file
   useEffect(() => {
