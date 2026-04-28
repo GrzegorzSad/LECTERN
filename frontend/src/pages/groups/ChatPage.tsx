@@ -760,7 +760,7 @@ export function ChatPage() {
                         <div
                           id={`message-${msg.id}`}
                           className={cn(
-                            "rounded-lg px-4 py-2 text-sm break-words",
+                            "rounded-lg px-4 py-2 text-sm break-words bg-sidebar",
                             style === "ai" &&
                               "bg-transparent ps-0 pb-1 text-foreground",
                             style === "own" &&
@@ -772,7 +772,7 @@ export function ChatPage() {
                               ? { backgroundColor: activeColor, color: "#fff" }
                               : style !== "own" && style !== "ai"
                                 ? {
-                                    backgroundColor: "hsl(var(--muted))",
+                                    backgroundColor: "sidebar",
                                     color: "hsl(var(--foreground))",
                                   }
                                 : undefined
