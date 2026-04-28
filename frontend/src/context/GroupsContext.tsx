@@ -54,7 +54,14 @@ export const GroupsProvider = ({ children }: { children: ReactNode }) => {
   }, [loggedIn]);
 
   const addGroup = (group: Group) => {
-    setGroups((prev) => [...prev, group]);
+    setGroups((prev) => {
+      const exists = prev.find((g) => g.id === group.id);
+      if (exists) {
+        return prev.map((g) => (g.id === group.id ? group : g));
+      } else {
+        return [...prev, group];
+      }
+    });
     membersApi
       .getMyRole(group.id)
       .then((r) => setMyRoles((prev) => ({ ...prev, [group.id]: r.role })))
