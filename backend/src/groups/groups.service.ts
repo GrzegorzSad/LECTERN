@@ -136,6 +136,9 @@ export class GroupsService {
         await prisma.chunk.deleteMany({ where: { fileId: file.id } });
       }
 
+      // Delete all private chats associated with this group
+      await prisma.privateChat.deleteMany({ where: { groupId: id } });
+
       await prisma.channel.deleteMany({ where: { groupId: id } });
       await prisma.member.deleteMany({ where: { groupId: id } });
       await prisma.file.deleteMany({ where: { groupId: id } });
