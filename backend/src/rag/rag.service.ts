@@ -3,7 +3,7 @@ import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { CohereClient } from 'cohere-ai';
 import OpenAI from 'openai';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+
 const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ text: string }>;
 import { Pool } from 'pg';
 import * as crypto from 'crypto';
@@ -11,18 +11,11 @@ import * as crypto from 'crypto';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface RetrieveOptions {
-  /** Filter to specific mimeTypes e.g. ['application/pdf'] */
   mimeTypes?: string[];
-  /** Only return chunks from files uploaded after this date */
   uploadedAfter?: Date;
-  /** Only return chunks from files whose name contains this string */
   fileNameContains?: string;
-  /** Restrict retrieval to specific fileIds */
   fileIds?: number[];
-  /** How many chunks to return after reranking (default 5) */
   topK?: number;
-  /** Use HyDE (Hypothetical Document Embeddings) query expansion */
-  useHyde?: boolean;
 }
 
 interface RawChunk {
@@ -37,7 +30,6 @@ interface RawChunk {
 }
 
 interface RankedChunk extends RawChunk {
-  /** The text actually sent to the LLM — parent window if available */
   contextText: string;
   finalScore: number;
 }
@@ -73,10 +65,6 @@ export class RagService {
 
   // ─── Ingest ───────────────────────────────────────────────────────────────
 
-  /**
-   * Process a file and return chunks + vectors. Now also returns parent chunks
-   * and extracted entities per chunk.
-   */
   async processFile(file: Express.Multer.File) {
     const text = await this.extractText(file);
     const chunks = await this.splitter.splitText(text);
@@ -119,14 +107,6 @@ export class RagService {
 
   // ─── Retrieval ────────────────────────────────────────────────────────────
 
-  /**
-   * Full enhanced retrieval pipeline:
-   *  1. Optional HyDE query expansion
-   *  2. Hybrid search (vector + BM25 full-text)
-   *  3. Reciprocal rank fusion
-   *  4. Cohere reranking
-   *  5. Parent-window context expansion
-   */
   async retrieveChunks(
     query: string,
     groupId: number,
@@ -134,24 +114,17 @@ export class RagService {
   ): Promise<RankedChunk[]> {
     const {
       topK = 5,
-      useHyde = false,
       mimeTypes,
       uploadedAfter,
       fileNameContains,
       fileIds,
     } = options;
 
-    // 1. Query expansion via HyDE
-    const searchQuery = useHyde
-      ? await this.expandQueryWithHyde(query)
-      : query;
-
-    // 2. Embed the (possibly expanded) query
-    const queryVector = await this.embeddings.embedQuery(searchQuery);
+    // 1. Embed the query
+    const queryVector = await this.embeddings.embedQuery(query);
     const vectorLiteral = `[${queryVector.join(',')}]`;
 
-    // 3. Build parameterised filter conditions.
-    //    $1 = query text (for FTS), $2 = groupId, $3+ = optional filters.
+    // 2. Build parameterised filter conditions.
     const params: unknown[] = [query, groupId];
     const extraConditions: string[] = [];
     let paramIndex = 3;
@@ -177,10 +150,8 @@ export class RagService {
       paramIndex++;
     }
 
-    // Base condition always applied to both CTEs
     const baseCondition = `f."groupId" = $2`;
     const metaConditions = [baseCondition, ...extraConditions].join(' AND ');
-    // FTS CTE additionally requires the text to match the query
     const ftsConditions = `${metaConditions} AND to_tsvector('english', c.text) @@ plainto_tsquery('english', $1)`;
 
     const candidateCount = Math.max(topK * 4, 20);
@@ -259,27 +230,8 @@ export class RagService {
 
     if (rows.rows.length === 0) return [];
 
-    // 4. Cohere reranking over the fused candidates
+    // 3. Cohere reranking over the fused candidates
     return this.rerank(query, rows.rows, topK);
-  }
-
-  // ─── HyDE ─────────────────────────────────────────────────────────────────
-
-  private async expandQueryWithHyde(query: string): Promise<string> {
-    const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a helpful assistant. Write a short, dense paragraph (3-5 sentences) that would be a plausible answer to the user\'s question. Focus on factual content, not conversational filler.',
-        },
-        { role: 'user', content: query },
-      ],
-      max_tokens: 200,
-      temperature: 0.3,
-    });
-    return completion.choices[0]?.message?.content ?? query;
   }
 
   // ─── Reranking ────────────────────────────────────────────────────────────
@@ -306,7 +258,6 @@ export class RagService {
         };
       });
     } catch {
-      // Graceful fallback: return top-K by RRF score (already ordered) if Cohere fails
       return chunks.slice(0, topK).map((chunk) => ({
         ...chunk,
         contextText: chunk.parentText ?? chunk.text,
@@ -366,16 +317,12 @@ export class RagService {
     return crypto.createHash('sha256').update(text).digest('hex');
   }
 
-  /**
-   * Given the index of a small chunk, find which parent chunk it falls within
-   * by character offset.
-   */
+
   private findParentIndex(
     chunkIndex: number,
     chunks: string[],
     parentChunks: string[],
   ): number {
-    // Approximate by cumulative character position
     const charOffset = chunks.slice(0, chunkIndex).reduce((a, c) => a + c.length, 0);
     let cumulative = 0;
     for (let i = 0; i < parentChunks.length; i++) {
