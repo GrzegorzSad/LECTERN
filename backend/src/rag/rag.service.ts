@@ -1,11 +1,10 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { OpenAIEmbeddings } from '@langchain/openai';
+import { CohereClient } from 'cohere-ai';
 import OpenAI from 'openai';
 
-const pdfParse = require('pdf-parse') as (
-  buffer: Buffer,
-) => Promise<{ text: string }>;
+const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ text: string }>;
 import { Pool } from 'pg';
 import * as crypto from 'crypto';
 
@@ -46,6 +45,8 @@ export class RagService {
 
   private openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+  private cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
+
   private pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
   // Small chunks for precise retrieval
@@ -74,6 +75,10 @@ export class RagService {
     return { chunks, parentChunks, vectors, entities, hashes };
   }
 
+  /**
+   * Streaming version — yields batches of small chunks with their parent index,
+   * vectors, entities, and dedup hash.
+   */
   async *processFileStream(file: Express.Multer.File) {
     const text = await this.extractText(file);
     const chunks = await this.splitter.splitText(text);
@@ -92,6 +97,7 @@ export class RagService {
         vectors,
         entities,
         hashes: batch.map((c) => this.hashChunk(c)),
+        /** Index of the corresponding parent chunk for each child chunk */
         parentIndices: batch.map((_, j) =>
           this.findParentIndex(i + j, chunks, parentChunks),
         ),
@@ -161,7 +167,7 @@ export class RagService {
           c.entities,
           c."parentText",
           c.vector <=> '${vectorLiteral}'::vector AS distance,
-          0::float AS bm25_score,
+          0::float                                 AS bm25_score,
           ROW_NUMBER() OVER (
             ORDER BY c.vector <=> '${vectorLiteral}'::vector
           ) AS vector_rank
@@ -198,17 +204,17 @@ export class RagService {
       ),
       rrf AS (
         SELECT
-          COALESCE(v.id, ft.id) AS id,
-          COALESCE(v."fileId", ft."fileId") AS "fileId",
-          COALESCE(v.text, ft.text) AS text,
-          COALESCE(v."fileName", ft."fileName") AS "fileName",
-          COALESCE(v.entities, ft.entities) AS entities,
-          COALESCE(v."parentText", ft."parentText") AS "parentText",
-          COALESCE(v.distance, 1) AS distance,
-          COALESCE(ft.bm25_score, 0) AS "bm25Score",
+          COALESCE(v.id,          ft.id)          AS id,
+          COALESCE(v."fileId",    ft."fileId")    AS "fileId",
+          COALESCE(v.text,        ft.text)        AS text,
+          COALESCE(v."fileName",  ft."fileName")  AS "fileName",
+          COALESCE(v.entities,    ft.entities)    AS entities,
+          COALESCE(v."parentText",ft."parentText") AS "parentText",
+          COALESCE(v.distance,    1)              AS distance,
+          COALESCE(ft.bm25_score, 0)              AS "bm25Score",
           (
-            COALESCE(1.0 / (60 + v.vector_rank), 0) +
-            COALESCE(1.0 / (60 + ft.fts_rank), 0)
+            COALESCE(1.0 / (60 + v.vector_rank),  0) +
+            COALESCE(1.0 / (60 + ft.fts_rank),    0)
           ) AS rrf_score
         FROM vector_search v
         FULL OUTER JOIN fts_search ft ON v.id = ft.id
@@ -224,16 +230,43 @@ export class RagService {
 
     if (rows.rows.length === 0) return [];
 
-    return this.rankFallback(rows.rows, topK);
+    // 3. Cohere reranking over the fused candidates
+    return this.rerank(query, rows.rows, topK);
   }
 
-  private rankFallback(chunks: RawChunk[], topK: number): RankedChunk[] {
-    return chunks.slice(0, topK).map((chunk) => ({
-      ...chunk,
-      contextText: chunk.parentText ?? chunk.text,
-      finalScore: 1 - chunk.distance,
-    }));
+  // ─── Reranking ────────────────────────────────────────────────────────────
+
+  private async rerank(
+    query: string,
+    chunks: RawChunk[],
+    topK: number,
+  ): Promise<RankedChunk[]> {
+    try {
+      const response = await this.cohere.rerank({
+        model: 'rerank-v3.5',
+        query,
+        documents: chunks.map((c) => c.text),
+        topN: topK,
+      });
+
+      return response.results.map((result) => {
+        const chunk = chunks[result.index];
+        return {
+          ...chunk,
+          contextText: chunk.parentText ?? chunk.text,
+          finalScore: result.relevanceScore,
+        };
+      });
+    } catch {
+      return chunks.slice(0, topK).map((chunk) => ({
+        ...chunk,
+        contextText: chunk.parentText ?? chunk.text,
+        finalScore: 1 - chunk.distance,
+      }));
+    }
   }
+
+  // ─── Entity extraction ────────────────────────────────────────────────────
 
   private async extractEntitiesInBatches(chunks: string[]): Promise<string[]> {
     const results: string[] = [];
@@ -268,6 +301,8 @@ export class RagService {
     }
   }
 
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+
   private async embedInBatches(chunks: string[]) {
     const results: number[][] = [];
     for (let i = 0; i < chunks.length; i += this.BATCH_SIZE) {
@@ -282,14 +317,13 @@ export class RagService {
     return crypto.createHash('sha256').update(text).digest('hex');
   }
 
+
   private findParentIndex(
     chunkIndex: number,
     chunks: string[],
     parentChunks: string[],
   ): number {
-    const charOffset = chunks
-      .slice(0, chunkIndex)
-      .reduce((a, c) => a + c.length, 0);
+    const charOffset = chunks.slice(0, chunkIndex).reduce((a, c) => a + c.length, 0);
     let cumulative = 0;
     for (let i = 0; i < parentChunks.length; i++) {
       cumulative += parentChunks[i].length;
@@ -297,6 +331,7 @@ export class RagService {
     }
     return parentChunks.length - 1;
   }
+
 
   private async extractText(file: Express.Multer.File): Promise<string> {
     const mime = file.mimetype;
