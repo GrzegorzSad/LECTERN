@@ -30,6 +30,10 @@ supabase for storing files:
 3. Get your Supabase URL and anon/public API key.
 4. Add these to your backend .env file.
 
+cohere for reranking:
+not crucial to function but an api key from cohere.com is used in reranking
+
+
 ## Microsoft Integration
 
 This project uses Microsoft services (e.g., Azure AD, Microsoft Graph, or OneDrive) for authentication and/or file storage.
